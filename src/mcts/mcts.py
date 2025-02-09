@@ -1,13 +1,14 @@
 from src.mcts.node import Node
 import random
 import time
+from typing import Tuple
 
 
 class MonteCarloTreeSearch:
     def __init__(self) -> None:
         pass
 
-    def best_move(self, root: Node, simulations_number: int) -> tuple[int, int]:
+    def best_move(self, root: Node, simulations_number: int) -> Tuple[int, int]:
         start = time.time()
 
         for _ in range(simulations_number):
