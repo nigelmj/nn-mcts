@@ -1,4 +1,5 @@
 from src.games.game import Game
+from typing import List, Tuple
 
 
 class Connect4(Game):
@@ -54,7 +55,7 @@ class Connect4(Game):
             return True
         return all(all(cell != 0 for cell in row) for row in self.state)
 
-    def get_legal_moves(self) -> list[tuple[int, int]]:
+    def get_legal_moves(self) -> List[Tuple[int, int]]:
         moves = []
         for col in range(7):
             for row in range(5, -1, -1):

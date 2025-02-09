@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import random
 import numpy as np
+from typing import List, Tuple
 
 
 class Game(ABC):
@@ -15,14 +16,14 @@ class Game(ABC):
         pass
 
     @abstractmethod
-    def get_legal_moves(self) -> list[tuple[int, int]]:
+    def get_legal_moves(self) -> List[Tuple[int, int]]:
         pass
 
     @abstractmethod
     def is_legal_move(self, row: int, col: int) -> bool:
         pass
 
-    def make_random_move(self) -> tuple[int, int]:
+    def make_random_move(self) -> Tuple[int, int]:
         return random.choice(self.get_legal_moves())
 
     @abstractmethod
@@ -41,7 +42,7 @@ class Game(ABC):
     def reset(self) -> None:
         pass
 
-    def set_state(self, state: list[list[int]]) -> None:
+    def set_state(self, state: List[List[int]]) -> None:
         self.state = state
 
     def set_player(self, player: int) -> None:
@@ -57,10 +58,10 @@ class Game(ABC):
         state = np.array(self.state)
         player_channel = (state == self.current_player).astype(int)
         opponent_channel = (state == -self.current_player).astype(int)
-        return np.stack([player_channel, opponent_channel], axis=-1)
+        return np.stack([player_channel, opponent_channel], axis=0)
 
-    def legal_moves_mask(self) -> np.ndarray:
-        mask = np.zeros(self.size1 * self.size2 + 1, dtype=np.float32)
+    def legal_moves_mask(self, policy_size) -> np.ndarray:
+        mask = np.zeros(policy_size, dtype=np.float32)
         for move in self.get_legal_moves():
             if move == (-1, -1):
                 mask[-1] = 1.0

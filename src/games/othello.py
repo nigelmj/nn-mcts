@@ -1,4 +1,5 @@
 from src.games.game import Game
+from typing import List, Tuple
 
 
 class Othello(Game):
@@ -68,7 +69,7 @@ class Othello(Game):
             self.current_player = -self.current_player
         return False
 
-    def get_possible_moves(self) -> list[tuple[int, int]]:
+    def get_possible_moves(self) -> List[Tuple[int, int]]:
         if self._legal_moves_cache is not None:
             return self._legal_moves_cache
         self._legal_moves_cache = []
@@ -78,7 +79,7 @@ class Othello(Game):
                     self._legal_moves_cache.append((i, j))
         return self._legal_moves_cache
 
-    def get_legal_moves(self) -> list[tuple[int, int]]:
+    def get_legal_moves(self) -> List[Tuple[int, int]]:
         possible_moves = self.get_possible_moves()
         if len(possible_moves) == 0:
             return [(-1, -1)]

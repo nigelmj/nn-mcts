@@ -1,4 +1,5 @@
 from src.games.game import Game
+from typing import List, Tuple
 
 
 class TicTacToe(Game):
@@ -32,7 +33,7 @@ class TicTacToe(Game):
             return True
         return all(all(cell != 0 for cell in row) for row in self.state)
 
-    def get_legal_moves(self) -> list[tuple[int, int]]:
+    def get_legal_moves(self) -> List[Tuple[int, int]]:
         return [(i, j) for i in range(3) for j in range(3) if self.is_legal_move(i, j)]
 
     def is_legal_move(self, row: int, col: int) -> bool:
