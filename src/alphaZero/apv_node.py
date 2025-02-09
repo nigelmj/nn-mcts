@@ -1,11 +1,20 @@
+from typing import Optional, Tuple
 from math import sqrt
+from src.games.game import Game
+import random
 
 
-c = 2.0
+c = 1.0
 
 
 class APVNode:
-    def __init__(self, game, parent, action, prior_probability):
+    def __init__(
+        self,
+        game: Game,
+        parent: Optional["APVNode"] = None,
+        action: Optional[Tuple[int, int]] = None,
+        prior_probability: int = 0,
+    ) -> None:
         self.game = game
         self.parent = parent
         self.action = action
@@ -15,7 +24,9 @@ class APVNode:
         self.value_sum = 0.0
         self.visit_count = 0
 
-    def _ucb_score(self):
+        self.terminal = None
+
+    def _puct_score(self) -> float:
         # Unexplored nodes have maximum priority
         if self.visit_count == 0:
             return float("inf")
@@ -36,15 +47,17 @@ class APVNode:
     def best_child(self) -> "APVNode":
         if not self.children:
             return self
-        return max(self.children, key=lambda node: node._ucb_score())
 
-    def is_fully_explored(self) -> bool:
-        return self.children != [] and all(
-            child.visit_count > 0 for child in self.children
-        )
+        child_scores = [(child, child._puct_score()) for child in self.children]
+        max_score = max(score for _, score in child_scores)
+        best_candidates = [child for child, score in child_scores if score == max_score]
+        return random.choice(best_candidates)
 
     def is_terminal(self) -> bool:
-        return self.game.is_game_over()
+        if self.terminal is not None:
+            return self.terminal
+        self.terminal = self.game.is_game_over()
+        return self.terminal
 
     def populate_children(self, normalised_p) -> None:
         if not self.children:
