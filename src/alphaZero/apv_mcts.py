@@ -8,7 +8,13 @@ from typing import List, Tuple
 
 
 class APVMCTS:
-    def __init__(self, root: APVNode, model: Model, num_simulations: int, policy_size: int, training: bool) -> None:
+    def __init__(self,
+        root: APVNode,
+        model: Model,
+        num_simulations: int,
+        policy_size: int,
+        training: bool,
+    ) -> None:
         self.root = root
         self.model = model
         self.num_simulations = num_simulations
@@ -63,9 +69,6 @@ class APVMCTS:
             normalised_p = (1 - epsilon) * normalised_p + epsilon * noise
 
         selected_node.populate_children(normalised_p)
-
-        leaf_node = max(selected_node.children, key=lambda node: node.prior_probability)
-        search_path.append(leaf_node)
         return value
 
     def _backpropagation(self, result: float, search_path: List[APVNode]) -> None:

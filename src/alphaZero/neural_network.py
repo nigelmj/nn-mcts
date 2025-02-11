@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from src.games.game import Game
 from src.alphaZero.apv_node import APVNode
 from src.alphaZero.apv_mcts import APVMCTS
+from src.alphaZero.arena import Arena
 import tensorflow as tf
 from tensorflow.keras import layers, models, mixed_precision
 from tensorflow.keras.models import Model
@@ -157,6 +158,9 @@ class GameZero(ABC):
         games_played = 0
 
         for _ in range(config["iterations"]):
+            old_model = tf.keras.models.clone_model(self.model)
+            old_model.set_weights(self.model.get_weights())
+
             # Generate self-play games
             num_games_per_iteration = config["games_per_iteration"]
             for _ in range(num_games_per_iteration):
@@ -168,7 +172,7 @@ class GameZero(ABC):
                 for state, policy, value in zip(states, policies, values):
                     replay_buffer.add(state, policy, value)
                 games_played += 1
-                print(f"Completed game {games_played}")
+            print(f"Completed game {games_played}")
 
             # Train on many batches from replay buffer
             self.train_network(
@@ -177,6 +181,21 @@ class GameZero(ABC):
                 batch_size=config["batch_size"],
             )
 
+            arena = Arena(
+                game=self.game,
+                curr_model=old_model,
+                new_model=self.model,
+                num_games=config["arena_games"],
+                threshold=config["update_threshold"],
+                num_simulations=config["num_simulations"],
+                policy_size=122,
+            )
+
+            if not arena.cross_threshold():
+                print("New model rejected; reverting to the old model.")
+                self.model.set_weights(old_model.get_weights())
+            else:
+                print("New model accepted based on arena evaluation.")
             # Save checkpoint
             if games_played % config["checkpoint_frequency"] == 0:
                 self.model.save(f"models/hex_checkpoint_{games_played}.keras")
