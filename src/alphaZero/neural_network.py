@@ -109,7 +109,7 @@ class GameZero(ABC):
             state = self.game.encode_state()
 
             root = APVNode(self.game.copy(), None, None, 0)
-            mcts = APVMCTS(root, self.model, num_simulations, 122, True)
+            mcts = APVMCTS(root, self.model, num_simulations, self.policy_size, True)
             improved_policy = mcts.compute_improved_policy()
 
             states.append(state)
@@ -188,7 +188,7 @@ class GameZero(ABC):
                 num_games=config["arena_games"],
                 threshold=config["update_threshold"],
                 num_simulations=config["num_simulations"],
-                policy_size=122,
+                policy_size=self.policy_size,
             )
 
             if not arena.cross_threshold():
