@@ -7,30 +7,46 @@ class Hex(Game):
         super().__init__(11, 11)
         self.turn = 0
         self._legal_moves_cache = None
+        self._legal_moves_dict = None
 
     def create_game(self) -> "Hex":
         return Hex()
 
     def get_legal_moves(self) -> List[Tuple[int, int]]:
         if self.turn == 3:
-            if self._legal_moves_cache and (-1, -1) in self._legal_moves_cache:
-                self._legal_moves_cache.remove((-1, -1))
+            if self._legal_moves_cache and (-1, -1) in self._legal_moves_dict:
+                index = self._legal_moves_dict[(-1, -1)]
+                last_move = self._legal_moves_cache[-1]
+
+                self._legal_moves_dict[last_move] = index
+                self._legal_moves_cache[index], self._legal_moves_cache[-1] = self._legal_moves_cache[-1], self._legal_moves_cache[index]
+
+                self._legal_moves_cache.pop()
+                del self._legal_moves_dict[(-1, -1)]
 
         if self._legal_moves_cache:
-            if self.turn == 2:
+            if self.turn == 2 and (-1, -1) not in self._legal_moves_dict:
                 self._legal_moves_cache.append((-1, -1))
-            return self._legal_moves_cache
+                self._legal_moves_dict[(-1, -1)] = len(self._legal_moves_cache)
 
+            return self._legal_moves_cache
         self._legal_moves_cache = []
+        self._legal_moves_dict = {}
+        count = 0
         for i in range(11):
             for j in range(11):
                 if self.state[i][j] == 0:
                     self._legal_moves_cache.append((i, j))
-        if self.turn == 2:
+                    self._legal_moves_dict[(i, j)] = count
+                    count += 1
+        if self.turn == 2 and (-1, -1) not in self._legal_moves_dict:
             self._legal_moves_cache.append((-1, -1))
+            self._legal_moves_dict[(i, j)] = count
         return self._legal_moves_cache
 
     def make_move(self, row: int, col: int) -> None:
+        if self._legal_moves_cache is None:
+            self.get_legal_moves
         if self.turn == 2 and row == -1 and col ==-1:
             for i in range(11):
                 for j in range(11):
@@ -39,8 +55,16 @@ class Hex(Game):
         else:
             self.state[row][col] = self.current_player
 
-        if self._legal_moves_cache:
-            self._legal_moves_cache.remove((row, col))
+        if self._legal_moves_cache and (row, col) in self._legal_moves_dict:
+            index = self._legal_moves_dict[(row, col)]
+            last_move = self._legal_moves_cache[-1]
+
+            self._legal_moves_dict[last_move] = index
+            self._legal_moves_cache[index], self._legal_moves_cache[-1] = self._legal_moves_cache[-1], self._legal_moves_cache[index]
+
+            self._legal_moves_cache.pop()
+            del self._legal_moves_dict[(row, col)]
+
         self.current_player = -self.current_player
         self.turn += 1
 
@@ -97,9 +121,11 @@ class Hex(Game):
         new_game.set_player(self.current_player)
         new_game.turn = self.turn
         new_game._legal_moves_cache = self._legal_moves_cache
+        new_game._legal_moves_dict = self._legal_moves_dict
         return new_game
 
     def reset(self) -> None:
         self.state = [[0 for _ in range(11)] for _ in range(11)]
         self.set_player(1)
         self._legal_moves_cache = None
+        self._legal_moves_dict = None
