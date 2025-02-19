@@ -71,11 +71,11 @@ class GameZero(ABC):
 
         x = layers.Dense(256, activation="relu")(x)
         x = layers.BatchNormalization()(x)
-        x = layers.Dropout(0.2)(x)
+        x = layers.Dropout(0.3)(x)
 
         x = layers.Dense(128, activation="relu")(x)
         x = layers.BatchNormalization()(x)
-        x = layers.Dropout(0.2)(x)
+        x = layers.Dropout(0.3)(x)
 
         policy_output = layers.Dense(
             self.policy_size,
@@ -198,4 +198,5 @@ class GameZero(ABC):
                 print("New model accepted based on arena evaluation.")
             # Save checkpoint
             if games_played % config["checkpoint_frequency"] == 0:
-                self.model.save(f"models/hex_checkpoint_{games_played}.keras")
+                self.model.save(f"{config['path']}_checkpoint_{games_played}")
+                self.model.save(f"{config['keras_path']}_checkpoint_{games_played}.keras")

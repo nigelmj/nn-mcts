@@ -89,8 +89,10 @@ training_config = {
     "checkpoint_frequency": 100,
     "num_epochs": 10,
     "arena_games": 40,
-    "update_threshold": 0.6,
+    "update_threshold": 0.55,
     "stochastic_threshold": 20,
+    "path": "src/alphaZero/othello/models/othello"
+    "keras_path": "src/alphaZero/othello/keras_models/othello"
 }
 
 az = OthelloZero()

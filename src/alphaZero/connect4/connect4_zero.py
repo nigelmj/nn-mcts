@@ -54,12 +54,15 @@ training_config = {
     "games_per_iteration": 100,
     "num_simulations": 50,
     "batch_size": 64,
-    "replay_buffer_size": 200000,
+    "replay_buffer_size": 60000,
     "checkpoint_frequency": 100,
     "num_epochs": 10,
     "arena_games": 40,
     "update_threshold": 0.6,
     "stochastic_threshold": 10,
+    "path": "src/alphaZero/connect4/models/connect4"
+    "keras_path": "src/alphaZero/connect4/keras_models/connect4"
+
 }
 
 az = Connect4Zero()
