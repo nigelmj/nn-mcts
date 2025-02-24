@@ -60,9 +60,8 @@ training_config = {
     "arena_games": 40,
     "update_threshold": 0.6,
     "stochastic_threshold": 10,
-    "path": "src/alphaZero/connect4/models/connect4"
+    "path": "src/alphaZero/connect4/models/connect4",
     "keras_path": "src/alphaZero/connect4/keras_models/connect4"
-
 }
 
 az = Connect4Zero()

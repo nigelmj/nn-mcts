@@ -4,7 +4,7 @@ from typing import List, Tuple
 
 class Hex(Game):
     def __init__(self) -> None:
-        super().__init__(11, 11)
+        super().__init__(7, 7)
         self.turn = 0
         self._legal_moves_cache = None
         self._legal_moves_dict = None
@@ -33,8 +33,8 @@ class Hex(Game):
         self._legal_moves_cache = []
         self._legal_moves_dict = {}
         count = 0
-        for i in range(11):
-            for j in range(11):
+        for i in range(7):
+            for j in range(7):
                 if self.state[i][j] == 0:
                     self._legal_moves_cache.append((i, j))
                     self._legal_moves_dict[(i, j)] = count
@@ -48,8 +48,8 @@ class Hex(Game):
         if self._legal_moves_cache is None:
             self.get_legal_moves
         if self.turn == 2 and row == -1 and col ==-1:
-            for i in range(11):
-                for j in range(11):
+            for i in range(7):
+                for j in range(7):
                     if self.state[i][j] != 0:
                         self.state[i][j] = self.current_player
         else:
@@ -69,13 +69,13 @@ class Hex(Game):
         self.turn += 1
 
     def is_game_over(self) -> bool:
-        # Game requires at least 21 turns to finish
-        if self.turn < 21:
+        # Game requires at least 13 turns to finish
+        if self.turn < 13:
             return False
         return self.get_winner() != 0
 
     def get_winner(self) -> int:
-        n = 11  # Board size
+        n = 7  # Board size
         visited = set()
 
         # Determine the edges to check based on the player
@@ -125,7 +125,7 @@ class Hex(Game):
         return new_game
 
     def reset(self) -> None:
-        self.state = [[0 for _ in range(11)] for _ in range(11)]
+        self.state = [[0 for _ in range(7)] for _ in range(7)]
         self.set_player(1)
         self._legal_moves_cache = None
         self._legal_moves_dict = None

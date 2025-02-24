@@ -91,7 +91,7 @@ training_config = {
     "arena_games": 40,
     "update_threshold": 0.55,
     "stochastic_threshold": 20,
-    "path": "src/alphaZero/othello/models/othello"
+    "path": "src/alphaZero/othello/models/othello",
     "keras_path": "src/alphaZero/othello/keras_models/othello"
 }
 

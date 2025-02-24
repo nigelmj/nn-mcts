@@ -5,7 +5,7 @@ import numpy as np
 
 class HexZero(GameZero):
     def __init__(self):
-        super().__init__(Hex(), 122)
+        super().__init__(Hex(), 50)
 
     def get_move(self, states_len: int, stochastic_threshold: int, improved_policy: np.ndarray) -> Tuple[int, int]:
         if states_len < stochastic_threshold:
@@ -13,11 +13,11 @@ class HexZero(GameZero):
         else:
             action_index = np.argmax(improved_policy)
 
-        if action_index == 121:
+        if action_index == 49:
             row, col = -1, -1
         else:
-            row = int(action_index // 11)
-            col = int(action_index % 11)
+            row = int(action_index // 7)
+            col = int(action_index % 7)
         return row, col
 
     def augment_data(
@@ -39,7 +39,7 @@ class HexZero(GameZero):
             # Rotated
             swap_move = policy[-1]
             policy = np.delete(policy, -1)
-            policy_2d = policy.reshape(11, 11)
+            policy_2d = policy.reshape(7, 7)
 
             rotated_state = np.rot90(state, k=2, axes=(1, 2))
             rotated_policy = np.rot90(policy_2d, k=2).flatten()
@@ -67,7 +67,7 @@ training_config = {
     "arena_games": 40,
     "update_threshold": 0.55,
     "stochastic_threshold": 20,
-    "path": "src/alphaZero/hex/models/hex"
+    "path": "src/alphaZero/hex/models/hex",
     "keras_path": "src/alphaZero/hex/keras_models/hex"
 }
 
