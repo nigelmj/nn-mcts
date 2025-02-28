@@ -29,7 +29,7 @@ class GameCLI(ABC):
                 row = int(input(f"Enter row (1-{row_end}): ")) - 1
                 col = int(input(f"Enter col (1-{col_end}): ")) - 1
                 action = row * self.game.size2 + col
-                print(action)
+
                 if not self.game.is_legal_move(action):
                     print("Invalid move. Please choose another.")
                 else:
@@ -52,7 +52,7 @@ class GameCLI(ABC):
                     root = Node(self.game, None, None)
                     mcts = MonteCarloTreeSearch()
                     action = mcts.best_move(root, iterations)
-                    row, col = action//self.game.size2, action%self.game.size2
+                    row, col = divmod(action, self.game.size2)
                     print(f"Computer plays: {row + 1}, {col + 1}")
 
                 else:
@@ -69,7 +69,7 @@ class GameCLI(ABC):
                     root = Node(self.game, None, None)
                     mcts = MonteCarloTreeSearch()
                     action = mcts.best_move(root, iterations)
-                    row, col = action//self.game.size2, action%self.game.size2
+                    row, col = divmod(action, self.game.size2)
                     print(f"Computer plays: {row + 1}, {col + 1}")
 
                 else:

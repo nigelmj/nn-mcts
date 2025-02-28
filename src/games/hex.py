@@ -20,7 +20,7 @@ class Hex(Game):
         if action == self.size1 * self.size2 and self.turn == 2:
             self.state = -self.state
         else:
-            row, col = action//self.size2, action%self.size2
+            row, col = divmod(action, self.size2)
             self.state[row,col] = self.current_player
         self.current_player = -self.current_player
         self.turn += 1
@@ -68,7 +68,7 @@ class Hex(Game):
         return 0
 
     def is_legal_move(self, action: int) -> bool:
-        row, col = action//self.size2, action%self.size2
+        row, col = divmod(action, self.size2)
         return (action == self.size1 * self.size2 and self.turn == 2) or self.state[row,col] == 0
 
     def copy(self) -> "Hex":
