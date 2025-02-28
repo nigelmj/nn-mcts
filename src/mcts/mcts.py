@@ -1,14 +1,13 @@
 from src.mcts.node import Node
 import random
 import time
-from typing import Tuple
 
 
 class MonteCarloTreeSearch:
     def __init__(self) -> None:
         pass
 
-    def best_move(self, root: Node, simulations_number: int) -> Tuple[int, int]:
+    def best_move(self, root: Node, simulations_number: int) -> int:
         start = time.time()
 
         for _ in range(simulations_number):
@@ -17,9 +16,6 @@ class MonteCarloTreeSearch:
             result = self._simulation(expanded_node)
             self._backpropagation(expanded_node, result)
         best_child = max(root.get_children(), key=lambda child: (child.simulations, child.wins))
-
-        if not best_child.move:
-            return (-1, -1)
 
         for child in root.get_children():
             print(child.move, child.wins, child.simulations)
@@ -30,7 +26,7 @@ class MonteCarloTreeSearch:
 
     def _selection(self, root: Node) -> Node:
         node = root
-        while node.is_fully_explored() and not node.is_terminal():
+        while node.children:
             node = node.best_child()
         return node
 
@@ -45,8 +41,7 @@ class MonteCarloTreeSearch:
     def _simulation(self, expanded_node: Node) -> int:
         simulated_game = expanded_node.game.copy()
         while not simulated_game.is_game_over():
-            move = random.choice(simulated_game.get_legal_moves())
-            simulated_game.make_move(*move)
+            simulated_game.make_random_move()
         return simulated_game.get_winner()
 
     def _backpropagation(self, terminal_node: Node, result: int) -> None:

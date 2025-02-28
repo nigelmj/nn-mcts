@@ -1,6 +1,7 @@
-from typing import Optional, Tuple, List
+from typing import Optional, List
 from math import sqrt, log
 from src.games.game import Game
+import numpy as np
 
 
 class Node:
@@ -8,7 +9,7 @@ class Node:
         self,
         game: Game,
         parent: Optional["Node"] = None,
-        move: Optional[Tuple[int, int]] = None,
+        move: int = None,
     ):
         self.game = game
         self.parent = parent
@@ -40,10 +41,10 @@ class Node:
     def get_children(self) -> List["Node"]:
         if self.children is None:
             self.children = []
-            for move in self.game.get_legal_moves():
-                i, j = move
+            legal_moves = self.game.get_legal_moves()
+            for move in legal_moves:
                 child = self.game.copy()
-                child.make_move(i, j)
+                child.make_move(move)
                 self.children.append(Node(child, self, move))
         return self.children
 

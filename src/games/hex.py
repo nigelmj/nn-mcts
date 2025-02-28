@@ -1,131 +1,84 @@
 from src.games.game import Game
-from typing import List, Tuple
+import numpy as np
 
 
 class Hex(Game):
     def __init__(self) -> None:
         super().__init__(7, 7)
-        self.turn = 0
-        self._legal_moves_cache = None
-        self._legal_moves_dict = None
+        self.turn = 1
 
     def create_game(self) -> "Hex":
         return Hex()
 
-    def get_legal_moves(self) -> List[Tuple[int, int]]:
-        if self.turn == 3:
-            if self._legal_moves_cache and (-1, -1) in self._legal_moves_dict:
-                index = self._legal_moves_dict[(-1, -1)]
-                last_move = self._legal_moves_cache[-1]
+    def get_legal_moves(self) -> np.ndarray:
+        legal_moves = np.flatnonzero(self.state == 0)
+        if self.turn == 2:
+            return np.append(legal_moves, self.size1 * self.size2)
+        return legal_moves
 
-                self._legal_moves_dict[last_move] = index
-                self._legal_moves_cache[index], self._legal_moves_cache[-1] = self._legal_moves_cache[-1], self._legal_moves_cache[index]
-
-                self._legal_moves_cache.pop()
-                del self._legal_moves_dict[(-1, -1)]
-
-        if self._legal_moves_cache:
-            if self.turn == 2 and (-1, -1) not in self._legal_moves_dict:
-                self._legal_moves_cache.append((-1, -1))
-                self._legal_moves_dict[(-1, -1)] = len(self._legal_moves_cache)
-
-            return self._legal_moves_cache
-        self._legal_moves_cache = []
-        self._legal_moves_dict = {}
-        count = 0
-        for i in range(7):
-            for j in range(7):
-                if self.state[i][j] == 0:
-                    self._legal_moves_cache.append((i, j))
-                    self._legal_moves_dict[(i, j)] = count
-                    count += 1
-        if self.turn == 2 and (-1, -1) not in self._legal_moves_dict:
-            self._legal_moves_cache.append((-1, -1))
-            self._legal_moves_dict[(i, j)] = count
-        return self._legal_moves_cache
-
-    def make_move(self, row: int, col: int) -> None:
-        if self._legal_moves_cache is None:
-            self.get_legal_moves
-        if self.turn == 2 and row == -1 and col ==-1:
-            for i in range(7):
-                for j in range(7):
-                    if self.state[i][j] != 0:
-                        self.state[i][j] = self.current_player
+    def make_move(self, action: int) -> None:
+        if action == self.size1 * self.size2 and self.turn == 2:
+            self.state = -self.state
         else:
-            self.state[row][col] = self.current_player
-
-        if self._legal_moves_cache and (row, col) in self._legal_moves_dict:
-            index = self._legal_moves_dict[(row, col)]
-            last_move = self._legal_moves_cache[-1]
-
-            self._legal_moves_dict[last_move] = index
-            self._legal_moves_cache[index], self._legal_moves_cache[-1] = self._legal_moves_cache[-1], self._legal_moves_cache[index]
-
-            self._legal_moves_cache.pop()
-            del self._legal_moves_dict[(row, col)]
-
+            row, col = action//self.size2, action%self.size2
+            self.state[row,col] = self.current_player
         self.current_player = -self.current_player
         self.turn += 1
 
     def is_game_over(self) -> bool:
-        # Game requires at least 13 turns to finish
-        if self.turn < 13:
+        # Game requires at least both players to play at least num_size turns to finish
+        if self.turn < (self.size1 + self.size2 -1):
             return False
         return self.get_winner() != 0
 
     def get_winner(self) -> int:
-        n = 7  # Board size
+        n = self.size1
         visited = set()
 
         # Determine the edges to check based on the player
         start_positions = []
         self.current_player *= -1
-        if self.current_player == 1:  # Red connects top to bottom
-            start_positions = [(0, col) for col in range(n) if self.state[0][col] == self.current_player]
-            goal_check = lambda x, y: x == n - 1  # Reached bottom row
-        else:  # Blue connects left to right
-            start_positions = [(row, 0) for row in range(n) if self.state[row][0] == self.current_player]
-            goal_check = lambda x, y: y == n - 1  # Reached right column
+        if self.current_player == 1:  # Player 1 connects top to bottom
+            start_positions = [(0, col) for col in range(n) if self.state[0, col] == self.current_player]
+            goal_check = lambda x, y: x == n - 1
+        else:  # Player 2 connects left to right
+            start_positions = [(row, 0) for row in range(n) if self.state[row, 0] == self.current_player]
+            goal_check = lambda x, y: y == n - 1
 
-        # Directions for Hex adjacency
         directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, 1), (1, -1)]
 
-        # Depth First Search (DFS)
         def dfs(x, y):
-            if goal_check(x, y):  # Check if we've reached the goal edge
+            if goal_check(x, y):
                 return True
 
             visited.add((x, y))
             for dx, dy in directions:
                 nx, ny = x + dx, y + dy
                 if 0 <= nx < n and 0 <= ny < n and (nx, ny) not in visited:
-                    if self.state[nx][ny] == self.current_player and dfs(nx, ny):
+                    if self.state[nx, ny] == self.current_player and dfs(nx, ny):
                         return True
             return False
 
-        # Start DFS from all valid starting positions
         for x, y in start_positions:
             if dfs(x, y):
                 self.current_player *= -1
-                return self.state[x][y]
+                return self.current_player
+
         self.current_player *= -1
         return 0
 
-    def is_legal_move(self, row: int, col: int) -> bool:
-        return self.state[row][col] == 0
+    def is_legal_move(self, action: int) -> bool:
+        row, col = action//self.size2, action%self.size2
+        return (action == self.size1 * self.size2 and self.turn == 2) or self.state[row,col] == 0
 
     def copy(self) -> "Hex":
         new_game = self.create_game()
-        new_game.set_state([row.copy() for row in self.state])
+        new_game.set_state(np.copy(self.state))
         new_game.set_player(self.current_player)
         new_game.turn = self.turn
-        new_game._legal_moves_cache = self._legal_moves_cache
-        new_game._legal_moves_dict = self._legal_moves_dict
         return new_game
 
     def reset(self) -> None:
-        self.state = [[0 for _ in range(7)] for _ in range(7)]
+        self.state = np.zeros((self.size1, self.size2))
         self.set_player(1)
-        self._legal_moves_cache = None
-        self._legal_moves_dict = None
+        self.turn = 1

@@ -22,4 +22,4 @@ class Connect4CLI(GameCLI):
 
 if __name__ == "__main__":
     cli = Connect4CLI(PlayerType.get_type_pair())
-    cli.play(50000)
+    cli.play(10000)

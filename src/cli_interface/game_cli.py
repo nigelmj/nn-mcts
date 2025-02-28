@@ -28,13 +28,9 @@ class GameCLI(ABC):
             try:
                 row = int(input(f"Enter row (1-{row_end}): ")) - 1
                 col = int(input(f"Enter col (1-{col_end}): ")) - 1
-                if row not in range(6) or col not in range(7):
-                    print(
-                        f"Invalid input. Please enter numbers between 1 and {row_end}.\nand between 1 and {col_end}."
-                    )
-                elif self.game.state[row][col] != 0:
-                    print("Cell is already taken. Please choose another.")
-                elif not self.game.is_legal_move(row, col):
+                action = row * self.game.size2 + col
+                print(action)
+                if not self.game.is_legal_move(action):
                     print("Invalid move. Please choose another.")
                 else:
                     return row, col
@@ -50,38 +46,42 @@ class GameCLI(ABC):
             if self.game.current_player == 1:
                 if self.player_1_type == PlayerType.HUMAN:
                     row, col = self.get_input()
+                    action = row * self.game.size2 + col
 
                 elif self.player_1_type == PlayerType.COMPUTER:
                     root = Node(self.game, None, None)
                     mcts = MonteCarloTreeSearch()
-                    row, col = mcts.best_move(root, iterations)
+                    action = mcts.best_move(root, iterations)
+                    row, col = action//self.game.size2, action%self.game.size2
                     print(f"Computer plays: {row + 1}, {col + 1}")
 
                 else:
-                    row, col = self.game.make_random_move()
+                    action = self.game.get_random_move()
 
-                self.game.make_move(row, col)
+                self.game.make_move(action)
 
             elif self.game.current_player == -1:
                 if self.player_2_type == PlayerType.HUMAN:
                     row, col = self.get_input()
+                    action = row * self.game.size2 + col
 
                 elif self.player_2_type == PlayerType.COMPUTER:
                     root = Node(self.game, None, None)
                     mcts = MonteCarloTreeSearch()
-                    row, col = mcts.best_move(root, iterations)
+                    action = mcts.best_move(root, iterations)
+                    row, col = action//self.game.size2, action%self.game.size2
                     print(f"Computer plays: {row + 1}, {col + 1}")
 
                 else:
-                    row, col = self.game.make_random_move()
+                    action = self.game.get_random_move()
 
-                self.game.make_move(row, col)
+                self.game.make_move(action)
 
             winner = self.game.get_winner()
             if winner:
                 self.display_state()
                 print(f"Player {self.player_1 if winner == 1 else self.player_2} wins!")
                 return
-            time.sleep(1)
+            # time.sleep(1)
         self.display_state()
         print("It's a draw!")
