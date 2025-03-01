@@ -5,13 +5,13 @@ from scipy.signal import convolve2d
 
 class Connect4(Game):
     def __init__(self) -> None:
-        super().__init__(6, 7)
+        super().__init__(6, 7, 42)
 
     def create_game(self) -> "Connect4":
         return Connect4()
 
     def make_move(self, action: int) -> None:
-        row, col = action//self.size2, action%self.size2
+        row, col = divmod(action, self.size2)
         self.state[row,col] = self.current_player
         self.current_player = -self.current_player
 

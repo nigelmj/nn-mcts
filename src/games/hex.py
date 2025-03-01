@@ -4,7 +4,7 @@ import numpy as np
 
 class Hex(Game):
     def __init__(self) -> None:
-        super().__init__(7, 7)
+        super().__init__(11, 11, 122)
         self.turn = 1
 
     def create_game(self) -> "Hex":
@@ -27,7 +27,7 @@ class Hex(Game):
 
     def is_game_over(self) -> bool:
         # Game requires at least both players to play at least num_size turns to finish
-        if self.turn < (self.size1 + self.size2 -1):
+        if self.turn < (self.size1 + self.size2 - 1):
             return False
         return self.get_winner() != 0
 

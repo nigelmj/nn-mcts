@@ -4,7 +4,7 @@ import numpy as np
 
 class Othello(Game):
     def __init__(self) -> None:
-        super().__init__(8, 8)
+        super().__init__(8, 8, 65)
         self.reset()
         self.directions = np.array([
             (-1, -1), (-1, 0), (-1, 1),
@@ -23,6 +23,13 @@ class Othello(Game):
         self.state[4,4] = -1
         self.set_player(1)
         self._legal_moves_cache = None
+
+    def copy(self) -> "Othello":
+        new_game = self.create_game()
+        new_game.set_state(np.copy(self.state))
+        new_game.set_player(self.current_player)
+        new_game._legal_moves_cache = self._legal_moves_cache
+        return new_game
 
     def make_move(self, action: int) -> None:
         self._legal_moves_cache = None

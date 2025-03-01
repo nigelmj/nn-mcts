@@ -4,13 +4,13 @@ import numpy as np
 
 class TicTacToe(Game):
     def __init__(self) -> None:
-        super().__init__(3, 3)
+        super().__init__(3, 3, 9)
 
     def create_game(self) -> "TicTacToe":
         return TicTacToe()
 
     def make_move(self, action: int) -> None:
-        row, col = action//self.size2, action%self.size2
+        row, col = divmod(action, self.size2)
         self.state[row, col] = self.current_player
         self.current_player = -self.current_player
 
@@ -42,7 +42,7 @@ class TicTacToe(Game):
         return np.flatnonzero(self.state == 0)
 
     def is_legal_move(self, action: int) -> bool:
-        row, col = action//self.size2, action%self.size2
+        row, col = divmod(action, self.size2)
         return self.state[row,col] == 0
 
     def reset(self) -> None:

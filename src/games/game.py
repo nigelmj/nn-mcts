@@ -3,10 +3,11 @@ import numpy as np
 
 
 class Game(ABC):
-    def __init__(self, size1: int, size2: int) -> None:
+    def __init__(self, size1: int, size2: int, policy_size: int) -> None:
         self.size1 = size1
         self.size2 = size2
         self.state = np.zeros((self.size1, self.size2))
+        self.policy_size = policy_size
         self.set_player(1)
 
     @abstractmethod
@@ -62,3 +63,8 @@ class Game(ABC):
         player_channel = (self.state == self.current_player).astype(int)
         opponent_channel = (self.state == -self.current_player).astype(int)
         return np.stack([player_channel, opponent_channel], axis=0)
+    
+    def legal_moves_mask(self) -> np.ndarray:
+        mask = np.zeros(self.policy_size, dtype=bool)
+        mask[self.get_legal_moves()] = True
+        return mask
