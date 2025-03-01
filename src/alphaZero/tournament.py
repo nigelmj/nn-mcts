@@ -1,21 +1,18 @@
-# from src.alphaZero.inference_server import InferenceServer
 from src.games.game import Game
-from tensorflow.keras.models import Model
-from src.alphaZero.apv_mcts import APVMCTS
+from src.alphaZero.pytorch.apv_mcts import APVMCTS
 from src.alphaZero.apv_node import APVNode
 import numpy as np
+import torch
 
 
-class Arena:
+class Tournament:
     def __init__(self,
         game: Game,
-        curr_model: Model,
-        new_model: Model,
+        curr_model: torch.nn.Module,
+        new_model: torch.nn.Module,
         num_games: int,
         threshold: float,
         num_simulations: int,
-        policy_size: int,
-        # inference_server: InferenceServer
     ) -> None:
         self.game = game
         self.curr_model = curr_model
@@ -23,23 +20,18 @@ class Arena:
         self.num_games = num_games
         self.threshold = threshold
         self.num_simulations = num_simulations
-        self.policy_size = policy_size
-        # self.inference_server = inference_server
 
     def play_game(self, new_play: bool) -> int:
         while not self.game.is_game_over():
             root = APVNode(self.game.copy(), None, None, 0)
             if new_play:
-                mcts = APVMCTS(root, self.new_model, self.num_simulations, self.policy_size, False)
+                mcts = APVMCTS(root, self.new_model, self.num_simulations, False, False)
             else:
-                mcts = APVMCTS(root, self.curr_model, self.num_simulations, self.policy_size, False)
+                mcts = APVMCTS(root, self.curr_model, self.num_simulations, False, False)
 
             improved_policy = mcts.compute_improved_policy()
-            action_index = np.argmax(improved_policy)
-
-            row = int(action_index // self.game.size2)
-            col = int(action_index % self.game.size2)
-            self.game.make_move(row, col)
+            action = np.argmax(improved_policy)
+            self.game.make_move(action)
 
             new_play = not new_play
         return self.game.get_winner()
@@ -59,6 +51,8 @@ class Arena:
 
         count1 = new_play_first.count(1)
         count2 = curr_play_first.count(-1)
+        print("New Models wins", count1, "games as player 1")
+        print("New Model wins", count2, "games as player 2")
         return count1 + count2
 
     def cross_threshold(self) -> bool:
