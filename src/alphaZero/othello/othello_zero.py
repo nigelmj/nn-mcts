@@ -1,4 +1,4 @@
-from src.alphaZero.neural_network import GameZero
+from src.alphaZero.pytorch.torchnn import GameZero
 from src.games.othello import Othello
 from typing import Tuple, List
 import numpy as np
@@ -6,20 +6,7 @@ import numpy as np
 
 class OthelloZero(GameZero):
     def __init__(self):
-        super().__init__(Othello(), 65)
-
-    def get_move(self, states_len: int, stochastic_threshold: int, improved_policy: np.ndarray) -> Tuple[int, int]:
-        if states_len < stochastic_threshold:
-            action_index = np.random.choice(len(improved_policy), p=improved_policy)
-        else:
-            action_index = np.argmax(improved_policy)
-
-        if action_index == 64:
-            row, col = -1, -1
-        else:
-            row = int(action_index // 8)
-            col = int(action_index % 8)
-        return row, col
+        super().__init__(Othello())
 
     def augment_data(
         self,
@@ -39,7 +26,7 @@ class OthelloZero(GameZero):
 
             pass_move = policy[-1]
             policy = np.delete(policy, -1)
-            policy_2d = policy.reshape(8, 8)
+            policy_2d = policy.reshape(self.game.size1, self.game.size2)
 
             # Rotations (90°, 180°, 270°)
             for k in range(1, 4):
@@ -81,17 +68,19 @@ class OthelloZero(GameZero):
 
 
 training_config = {
-    "iterations": 100,
+    "iterations": 200,
     "games_per_iteration": 100,
+    "max_iter_per_train_step": 10,
     "num_simulations": 50,
     "batch_size": 256,
-    "replay_buffer_size": 200000,
+    "episode_data_size": 200000,
     "checkpoint_frequency": 100,
     "num_epochs": 10,
-    "arena_games": 40,
+    "tournament_games": 40,
     "update_threshold": 0.55,
     "stochastic_threshold": 20,
     "path": "src/alphaZero/othello/models/othello",
+    "pt_path": "src/alphaZero/othello/pt_models/othello",
     "keras_path": "src/alphaZero/othello/keras_models/othello"
 }
 
