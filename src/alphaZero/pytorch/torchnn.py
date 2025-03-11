@@ -64,15 +64,15 @@ class AlphaZeroNetwork(nn.Module):
         # Policy head
         policy = F.relu(self.policy_bn(self.policy_conv(x)))
         policy = policy.view(policy.size(0), -1)
-        policy = torch.log_softmax(self.policy_fc(policy))
+        policy = self.policy_fc(policy)
 
         # Value head
         value = F.relu(self.value_bn(self.value_conv(x)))
         value = value.view(value.size(0), -1)
         value = F.relu(self.value_fc1(value))
-        value = torch.tanh(self.value_fc2(value))
+        value = self.value_fc2(value)
 
-        return policy, value
+        return F.log_softmax(policy, dim=1), torch.tanh(value)
 
 class GameZero(ABC):
     def __init__(self, game: Game) -> None:
