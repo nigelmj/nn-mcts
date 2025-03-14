@@ -1,7 +1,6 @@
 from concurrent.futures import ProcessPoolExecutor
 from src.mcts.node import Node
 import random
-import time
 
 
 class MCTSRootParallel:
@@ -9,7 +8,6 @@ class MCTSRootParallel:
         pass
 
     def best_move(self, root: Node, simulations_number: int, num_processes: int = 8) -> tuple[int, int]:
-        start = time.time()
 
         simulations_per_process = simulations_number // num_processes
         root_copies = [root.copy() for _ in range(num_processes)]
@@ -28,11 +26,6 @@ class MCTSRootParallel:
 
         if not best_child.move:
             return (-1, -1)
-
-        for child in root.get_children():
-            print(child.move, child.wins, child.simulations)
-        print()
-        print("Time:", time.time() - start)
 
         return best_child.move
 

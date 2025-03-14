@@ -1,6 +1,5 @@
 from src.mcts.node import Node
 import random
-import time
 
 
 class MonteCarloTreeSearch:
@@ -8,7 +7,6 @@ class MonteCarloTreeSearch:
         pass
 
     def best_move(self, root: Node, simulations_number: int) -> int:
-        start = time.time()
 
         for _ in range(simulations_number):
             node = self._selection(root)
@@ -16,11 +14,6 @@ class MonteCarloTreeSearch:
             result = self._simulation(expanded_node)
             self._backpropagation(expanded_node, result)
         best_child = max(root.get_children(), key=lambda child: (child.simulations, child.wins))
-
-        for child in root.get_children():
-            print(child.move, child.wins, child.simulations)
-        print()
-        print("Time:", time.time() - start)
 
         return best_child.move
 
