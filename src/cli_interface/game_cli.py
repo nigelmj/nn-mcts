@@ -4,8 +4,6 @@ from src.mcts.node import Node
 from src.mcts.mcts import MonteCarloTreeSearch
 from src.games.game import Game
 
-import time
-
 
 class GameCLI(ABC):
     def __init__(
@@ -77,11 +75,10 @@ class GameCLI(ABC):
 
                 self.game.make_move(action)
 
-            winner = self.game.get_winner()
-            if winner:
-                self.display_state()
-                print(f"Player {self.player_1 if winner == 1 else self.player_2} wins!")
-                return
-            # time.sleep(1)
+        winner = self.game.get_winner()
+        if winner:
+            self.display_state()
+            print(f"Player {self.player_1 if winner == 1 else self.player_2} wins!")
+            return
         self.display_state()
         print("It's a draw!")

@@ -116,8 +116,6 @@ class Othello(Game):
         return 0 <= r < self.size1 and 0 <= c < self.size2 and self.state[r, c] == self.current_player
 
     def get_winner(self) -> int:
-        if not self.is_game_over():
-            return 0
         score = np.sum(self.state)
         if score > 0:
             return 1
