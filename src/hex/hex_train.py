@@ -1,0 +1,63 @@
+from src.train_pipeline import GameZero
+from src.hex.hex_logic import Hex
+from typing import Tuple, List
+import numpy as np
+
+class HexZero(GameZero):
+    def __init__(self):
+        super().__init__(Hex())
+
+    def augment_data(
+        self,
+        states: List[np.ndarray],
+        policies: List[np.ndarray],
+        values: List[int],
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        augmented_states = []
+        augmented_policies = []
+        augmented_values = []
+
+        for state, policy, value in zip(states, policies, values):
+            # Original
+            augmented_states.append(state)
+            augmented_policies.append(policy)
+            augmented_values.append(value)
+
+            # Rotated
+            swap_move = policy[-1]
+            policy = np.delete(policy, -1)
+            policy_2d = policy.reshape(self.game.size1, self.game.size2)
+
+            rotated_state = np.rot90(state, k=2, axes=(1, 2))
+            rotated_policy = np.rot90(policy_2d, k=2).flatten()
+            full_policy = np.append(rotated_policy, swap_move)
+
+            augmented_states.append(rotated_state)
+            augmented_policies.append(full_policy)
+            augmented_values.append(value)
+
+        return (
+            np.array(augmented_states),
+            np.array(augmented_policies),
+            np.array(augmented_values),
+        )
+
+
+training_config = {
+    "iterations": 100,
+    "games_per_iteration": 200,
+    "max_iter_per_train_step": 10,
+    "num_simulations": 25,
+    "batch_size": 32,
+    "episode_data_size": 300000,
+    "checkpoint_frequency": 200,
+    "num_epochs": 10,
+    "tournament_games": 40,
+    "update_threshold": 0.60,
+    "stochastic_threshold": 30,
+    "path": "src/hex/models/hex",
+}
+
+az = HexZero()
+model = az.build_network(4)
+az.training_pipeline(training_config)
