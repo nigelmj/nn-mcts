@@ -1,7 +1,6 @@
 from typing import Optional, List
 from math import sqrt, log
-from src.games.game import Game
-import numpy as np
+from src.game import Game
 
 
 class Node:

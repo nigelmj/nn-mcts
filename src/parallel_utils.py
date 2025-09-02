@@ -1,7 +1,7 @@
 import torch
 import time
 
-def worker_generate_games(model_state_dict, game_class, pipeline_class, num_games, num_simulations, threshold):
+def worker_generate_games(model_state_dict, pipeline_class, num_games, num_simulations, threshold):
     torch.set_num_threads(1)
     zero = pipeline_class()
 

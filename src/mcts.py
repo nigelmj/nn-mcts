@@ -34,7 +34,6 @@ class MCTS:
         for child in self.root.children.values():
             policy[child.action] = child.Ns / total_visits
 
-        # print(policy)
         if not self.sampling:
             best_actions = np.argwhere(policy == np.max(policy)).flatten()
             best_action = np.random.choice(best_actions)

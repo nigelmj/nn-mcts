@@ -84,6 +84,10 @@ class GameZero(ABC):
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         pass
 
+    @abstractmethod
+    def parallel_generate(self, total_games, num_simulations, threshold, num_workers) -> List:
+        pass
+
     def train_network(self, training_samples, num_epochs: int, batch_size: int) -> None:
         states, policies, values = zip(*training_samples)
 
@@ -145,20 +149,32 @@ class GameZero(ABC):
             step_time = time.time()
             num_games_per_iteration = config["games_per_iteration"]
             episode_data = deque(maxlen=config['episode_data_size'])
-            for _ in range(num_games_per_iteration):
-                game_time = time.time()
-                states, policies, values = self.generate_games(
-                    config["num_simulations"],
-                    config["stochastic_threshold"]
-                )
+            # for _ in range(num_games_per_iteration):
+            #     game_time = time.time()
+            #     states, policies, values = self.generate_games(
+            #         config["num_simulations"],
+            #         config["stochastic_threshold"]
+            #     )
 
-                # Add game data to replay buffer
-                for state, policy, value in zip(states, policies, values):
-                    episode_data.append((state, policy, value))
-                games_played += 1
-                print("Time taken for game: ", time.time() - game_time)
-                game_time = time.time()
+            #     # Add game data to replay buffer
+            #     for state, policy, value in zip(states, policies, values):
+            #         episode_data.append((state, policy, value))
+            #     games_played += 1
+            #     print("Time taken for game: ", time.time() - game_time)
+            #     game_time = time.time()
+            result = self.parallel_generate(
+                num_games_per_iteration,
+                config["num_simulations"],
+                config["stochastic_threshold"],
+                config["num_workers"]
+            )
+            episode_data.extend(result)
+
+            games_played += num_games_per_iteration
+
             print("Games played:", games_played, flush=True)
+            print("Length of episode data:", len(episode_data))
+            print("Time take for episode data generation", time.time() - step_time)
             training_data.append(episode_data)
 
             if len(training_data) > config['max_iter_per_train_step']:

@@ -1,4 +1,4 @@
-from src.mcts.node import Node
+from src.base_mcts.node import Node
 import random
 
 

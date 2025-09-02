@@ -1,5 +1,7 @@
+import torch.multiprocessing as mp
 from src.train_pipeline import GameZero
 from src.othello.othello_logic import Othello
+from src.parallel_utils import worker_generate_games
 from typing import Tuple, List
 import numpy as np
 
@@ -66,6 +68,27 @@ class OthelloZero(GameZero):
             np.array(augmented_values),
         )
 
+    def parallel_generate(self, total_games, num_simulations, threshold, num_workers):
+        model_state_dict = self.model.state_dict()
+
+        games_per_worker = total_games // num_workers
+
+        ctx = mp.get_context("spawn")
+        with ctx.Pool(num_workers) as pool:
+            results = pool.starmap(
+                worker_generate_games,
+                [
+                    (model_state_dict, OthelloZero, games_per_worker, num_simulations, threshold)
+                    for _ in range(num_workers)
+                ]
+            )
+
+        overall_results = []
+        for worker_result in results:
+            print("Worker result length of result:", len(worker_result))
+            overall_results.extend(worker_result)
+        return overall_results
+
 
 training_config = {
     "iterations": 100,
@@ -80,8 +103,10 @@ training_config = {
     "update_threshold": 0.40,
     "stochastic_threshold": 30,
     "path": "src/othello/models/othello",
+    "num_workers": 7
 }
 
-az = OthelloZero()
-model = az.build_network(3)
-az.training_pipeline(training_config)
+if __name__ == "__main__":
+    az = OthelloZero()
+    model = az.build_network(2)
+    az.training_pipeline(training_config)
