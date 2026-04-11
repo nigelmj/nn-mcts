@@ -4,6 +4,7 @@ from src.othello.othello_logic import Othello
 from src.parallel_utils import worker_generate_games
 from typing import Tuple, List
 import numpy as np
+import time
 
 
 class OthelloZero(GameZero):
@@ -68,25 +69,36 @@ class OthelloZero(GameZero):
             np.array(augmented_values),
         )
 
-    def parallel_generate(self, total_games, num_simulations, threshold, num_workers):
-        model_state_dict = self.model.state_dict()
-
+    def parallel_generate(self,
+        total_games: int,
+        num_simulations: int,
+        threshold: int,
+        req_q: mp.Queue,
+        resp_q_dict: dict[int, mp.Queue],
+        num_workers: int
+    ) -> List:
         games_per_worker = total_games // num_workers
 
+        start = time.time()
         ctx = mp.get_context("spawn")
-        with ctx.Pool(num_workers) as pool:
-            results = pool.starmap(
-                worker_generate_games,
-                [
-                    (model_state_dict, OthelloZero, games_per_worker, num_simulations, threshold)
-                    for _ in range(num_workers)
-                ]
+        processes = []
+        results_queue = mp.Queue()
+
+        for wid in range(num_workers):
+            p = ctx.Process(
+                target=worker_generate_games,
+                args=(req_q, resp_q_dict[wid], OthelloZero, games_per_worker, num_simulations, threshold, results_queue, wid)
             )
+            processes.append(p)
+            p.start()
 
         overall_results = []
-        for worker_result in results:
-            print("Worker result length of result:", len(worker_result))
+        for _ in range(num_workers):
+            worker_result = results_queue.get()
             overall_results.extend(worker_result)
+        print(f"Total parallelised generation time is {time.time() - start}")
+        for p in processes:
+            p.join()
         return overall_results
 
 
@@ -94,7 +106,7 @@ training_config = {
     "iterations": 100,
     "games_per_iteration": 200,
     "max_iter_per_train_step": 10,
-    "num_simulations": 25,
+    "num_simulations": 50,
     "batch_size": 32,
     "episode_data_size": 200000,
     "checkpoint_frequency": 100,
@@ -103,7 +115,10 @@ training_config = {
     "update_threshold": 0.40,
     "stochastic_threshold": 30,
     "path": "src/othello/models/othello",
-    "num_workers": 7
+    "num_workers": mp.cpu_count() - 1,
+    "size1": 8,
+    "size2": 8,
+    "policy_size": 65
 }
 
 if __name__ == "__main__":

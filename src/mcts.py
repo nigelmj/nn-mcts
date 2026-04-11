@@ -1,7 +1,6 @@
+from torch.multiprocessing import Queue
 from src.game import Game
 from src.node import Node
-from src.neural_network import AlphaZeroNetwork
-import torch
 import numpy as np
 from typing import List
 
@@ -9,17 +8,20 @@ from typing import List
 class MCTS:
     def __init__(self,
         root: Node,
-        model: AlphaZeroNetwork,
         num_simulations: int,
         training: bool,
         sampling: bool,
+        request_queue: Queue,
+        response_queue: Queue,
+        wid: int
     ) -> None:
         self.root = root
-        self.model = model
         self.num_simulations = num_simulations
         self.training = training
         self.sampling = sampling
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.request_queue = request_queue
+        self.response_queue = response_queue
+        self.wid = wid
 
     def compute_improved_policy(self) -> np.ndarray:
         for _ in range(self.num_simulations):
@@ -60,12 +62,8 @@ class MCTS:
             return -(selected_node.game.get_winner() * selected_node.game.current_player)
 
         encoded_state = selected_node.game.encode_state()
-        encoded_state = np.expand_dims(encoded_state, axis=0)
-
-        # Convert to PyTorch tensor
-        state_tensor = torch.tensor(encoded_state, dtype=torch.float32).to(self.device)
-        policy, value = self.model.predict(state_tensor)
-
+        self.request_queue.put((self.wid, encoded_state))
+        policy, value = self.response_queue.get()
         normalised_p = self._mask_normalise_policy(policy, selected_node.game)
         if selected_node == self.root and self.training:
             noise = np.random.dirichlet(0.03 * np.ones(selected_node.game.policy_size))

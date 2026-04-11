@@ -41,25 +41,36 @@ class ConnectFourZero(GameZero):
             np.array(augmented_values),
         )
 
-    def parallel_generate(self, total_games, num_simulations, threshold, num_workers):
-        model_state_dict = self.model.state_dict()
-
+    def parallel_generate(self,
+        total_games: int,
+        num_simulations: int,
+        threshold: int,
+        req_q: mp.Queue,
+        resp_q_dict: dict[int, mp.Queue],
+        num_workers: int
+    ) -> List:
         games_per_worker = total_games // num_workers
 
         ctx = mp.get_context("spawn")
-        with ctx.Pool(num_workers) as pool:
-            results = pool.starmap(
-                worker_generate_games,
-                [
-                    (model_state_dict, ConnectFourZero, games_per_worker, num_simulations, threshold)
-                    for _ in range(num_workers)
-                ]
+        processes = []
+        results_queue = mp.Queue()
+
+        for wid in range(num_workers):
+            p = ctx.Process(
+                target=worker_generate_games,
+                args=(req_q, resp_q_dict[wid], ConnectFourZero, games_per_worker, num_simulations, threshold, results_queue, wid)
             )
+            processes.append(p)
+            p.start()
 
         overall_results = []
-        for worker_result in results:
+        for _ in range(num_workers):
+            worker_result = results_queue.get()
             print("Worker result length of result:", len(worker_result))
             overall_results.extend(worker_result)
+
+        for p in processes:
+            p.join()
         return overall_results
 
 
@@ -67,7 +78,7 @@ training_config = {
     "iterations": 100,
     "games_per_iteration": 200,
     "max_iter_per_train_step": 20,
-    "num_simulations": 25,
+    "num_simulations": 50,
     "batch_size": 32,
     "episode_data_size": 60000,
     "checkpoint_frequency": 200,
@@ -76,7 +87,10 @@ training_config = {
     "update_threshold": 0.60,
     "stochastic_threshold": 20,
     "path": "src/connect4/models/connect4",
-    "num_workers": 7
+    "num_workers": mp.cpu_count() - 1,
+    "size1": 6,
+    "size2": 7,
+    "policy_size": 42
 }
 
 if __name__ == "__main__":

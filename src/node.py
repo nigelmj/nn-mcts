@@ -57,5 +57,5 @@ class Node:
             for move in self.game.get_legal_moves():
                 child = self.game.copy()
                 child.make_move(move)
-                prior = normalised_p[0, move]
+                prior = normalised_p[move]
                 self.children[move] = Node(child, self, move, prior)

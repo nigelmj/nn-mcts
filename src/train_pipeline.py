@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import torch.multiprocessing as mp
 from torch.utils.data import DataLoader, TensorDataset
 from abc import ABC, abstractmethod
 import numpy as np
@@ -10,6 +11,7 @@ from src.node import Node
 from src.mcts import MCTS
 from src.neural_network import AlphaZeroNetwork
 from src.tournament import Tournament
+from src.inference_worker import InferenceWorker
 from random import shuffle
 from collections import deque
 from typing import List, Tuple, Dict
@@ -20,7 +22,8 @@ class GameZero(ABC):
     def __init__(self, game: Game) -> None:
         self.model = None
         self.game = game
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("mps")
 
     def build_network(self, num_channels: int) -> nn.Module:
         self.model = AlphaZeroNetwork(
@@ -41,7 +44,7 @@ class GameZero(ABC):
         return self.model
 
     def generate_games(
-        self, num_simulations: int, threshold: int
+        self, num_simulations: int, threshold: int, req_q: mp.Queue, resp_q: mp.Queue, wid: int
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
 
         states, policies, values = [], [], []
@@ -54,7 +57,7 @@ class GameZero(ABC):
             state = self.game.encode_state()
 
             sampling = move_count < threshold
-            mcts = MCTS(root, self.model, num_simulations, True, sampling)
+            mcts = MCTS(root, num_simulations, True, sampling, req_q, resp_q, wid)
             improved_policy = mcts.compute_improved_policy()
 
             states.append(state)
@@ -85,7 +88,14 @@ class GameZero(ABC):
         pass
 
     @abstractmethod
-    def parallel_generate(self, total_games, num_simulations, threshold, num_workers) -> List:
+    def parallel_generate(self,
+        total_games: int,
+        num_simulations: int,
+        threshold: int,
+        req_q: mp.Queue,
+        resp_q_dict: dict[int, mp.Queue],
+        num_workers: int
+    ) -> List:
         pass
 
     def train_network(self, training_samples, num_epochs: int, batch_size: int) -> None:
@@ -144,80 +154,95 @@ class GameZero(ABC):
         games_played = 0
         training_data = []
 
+        request_queue = mp.Queue()
+        response_queues_dict = {}
+
+        for wid in range(config["num_workers"]):
+            response_queues_dict[wid] = mp.Queue()
+
+        state_dict = {
+            k: v.detach().cpu()
+            for k, v in self.model.state_dict().items()
+        }
+
+        self.inference_worker = InferenceWorker(
+            state_dict,
+            request_queue,
+            response_queues_dict,
+            self.device,
+            config["num_workers"],
+            config["size1"],
+            config["size2"],
+            config["policy_size"]
+        )
+
+        self.inference_worker.start()
+        print(f"Queue for training pipeline is {id(request_queue)}")
+
         for _ in range(config["iterations"]):
-            # Generate self-play games
             step_time = time.time()
             num_games_per_iteration = config["games_per_iteration"]
             episode_data = deque(maxlen=config['episode_data_size'])
-            # for _ in range(num_games_per_iteration):
-            #     game_time = time.time()
-            #     states, policies, values = self.generate_games(
-            #         config["num_simulations"],
-            #         config["stochastic_threshold"]
-            #     )
 
-            #     # Add game data to replay buffer
-            #     for state, policy, value in zip(states, policies, values):
-            #         episode_data.append((state, policy, value))
-            #     games_played += 1
-            #     print("Time taken for game: ", time.time() - game_time)
-            #     game_time = time.time()
             result = self.parallel_generate(
                 num_games_per_iteration,
                 config["num_simulations"],
                 config["stochastic_threshold"],
+                request_queue,
+                response_queues_dict,
                 config["num_workers"]
             )
             episode_data.extend(result)
 
-            games_played += num_games_per_iteration
+            # games_played += num_games_per_iteration
 
-            print("Games played:", games_played, flush=True)
-            print("Length of episode data:", len(episode_data))
-            print("Time take for episode data generation", time.time() - step_time)
-            training_data.append(episode_data)
+            # print("Games played:", games_played, flush=True)
+            # print("Length of episode data:", len(episode_data))
+            # print("Time take for episode", time.time() - step_time)
 
-            if len(training_data) > config['max_iter_per_train_step']:
-                print("Removing old data")
-                training_data.pop(0)
+            # training_data.append(episode_data)
 
-            training_samples = []
-            for e in training_data:
-                training_samples.extend(e)
-            shuffle(training_samples)
+            # if len(training_data) > config['max_iter_per_train_step']:
+            #     print("Removing old data")
+            #     training_data.pop(0)
 
-            # Clone the current model for comparison
-            old_model = AlphaZeroNetwork(
-                game_size1=self.game.size1,
-                game_size2=self.game.size2,
-                num_channels=self.model.conv1.in_channels,
-                policy_size=self.game.policy_size
-            ).to(self.device)
-            old_model.load_state_dict(self.model.state_dict())
+            # training_samples = []
+            # for e in training_data:
+            #     training_samples.extend(e)
+            # shuffle(training_samples)
 
-            self.train_network(
-                training_samples,
-                num_epochs=config["num_epochs"],
-                batch_size=config["batch_size"],
-            )
+            # # Clone the current model for comparison
+            # old_model = AlphaZeroNetwork(
+            #     game_size1=self.game.size1,
+            #     game_size2=self.game.size2,
+            #     num_channels=self.model.conv1.in_channels,
+            #     policy_size=self.game.policy_size
+            # ).to(self.device)
+            # old_model.load_state_dict(self.model.state_dict())
 
-            tournament = Tournament(
-                game=self.game,
-                curr_model=old_model,
-                new_model=self.model,
-                num_games=config["tournament_games"],
-                threshold=config["update_threshold"],
-                num_simulations=config["num_simulations"],
-            )
+            # self.train_network(
+            #     training_samples,
+            #     num_epochs=config["num_epochs"],
+            #     batch_size=config["batch_size"],
+            # )
 
-            if not tournament.cross_threshold():
-                print("New model rejected; reverting to the old model.")
-                self.model.load_state_dict(old_model.state_dict())
-            else:
-                print("New model accepted based on tournament evaluation.")
+            # tournament = Tournament(
+            #     game=self.game,
+            #     curr_model=old_model,
+            #     new_model=self.model,
+            #     num_games=config["tournament_games"],
+            #     threshold=config["update_threshold"],
+            #     num_simulations=config["num_simulations"],
+            # )
 
-            # Save checkpoint
-            if games_played % config["checkpoint_frequency"] == 0:
-                torch.save(self.model.state_dict(), f"{config['path']}_checkpoint_{games_played}.pt")
-            print("Time taken for training step:", time.time()-step_time, flush=True)
-            step_time = time.time()
+            # if not tournament.cross_threshold():
+            #     print("New model rejected; reverting to the old model.")
+            #     self.model.load_state_dict(old_model.state_dict())
+            # else:
+            #     print("New model accepted based on tournament evaluation.")
+
+            # # Save checkpoint
+            # if games_played % config["checkpoint_frequency"] == 0:
+            #     torch.save(self.model.state_dict(), f"{config['path']}_checkpoint_{games_played}.pt")
+            # print("Time taken for training step:", time.time()-step_time, flush=True)
+            # step_time = time.time()
