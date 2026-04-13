@@ -56,5 +56,5 @@ training_config = {
 }
 
 az = ConnectFourZero()
-model = az.build_network(3)
+model = az.build_network(2)
 az.training_pipeline(training_config)

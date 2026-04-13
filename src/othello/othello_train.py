@@ -71,7 +71,7 @@ training_config = {
     "iterations": 100,
     "games_per_iteration": 200,
     "max_iter_per_train_step": 10,
-    "num_simulations": 25,
+    "num_simulations": 50,
     "batch_size": 32,
     "episode_data_size": 200000,
     "checkpoint_frequency": 100,
@@ -83,5 +83,5 @@ training_config = {
 }
 
 az = OthelloZero()
-model = az.build_network(3)
+model = az.build_network(2)
 az.training_pipeline(training_config)
