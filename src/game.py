@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+
 import numpy as np
 
 
@@ -60,12 +61,6 @@ class Game(ABC):
         return new_game
 
     def encode_state(self) -> np.ndarray:
-        # first_player_plane = (self.state == 1).astype(int)
-        # second_player_plane = (self.state == -1).astype(int)
-        # turn_indicator_plane = np.ones_like(first_player_plane) \
-        #                     if (self.current_player == 1) \
-        #                     else np.zeros_like(first_player_plane)
-        # return np.stack([first_player_plane, second_player_plane, turn_indicator_plane], axis=0)
         current_player_channel = (self.state == self.current_player).astype(int)
         opponent_player_channel = (self.state == -self.current_player).astype(int)
         return np.stack([current_player_channel, opponent_player_channel], axis=0)
@@ -74,3 +69,11 @@ class Game(ABC):
         mask = np.zeros(self.policy_size, dtype=bool)
         mask[self.get_legal_moves()] = True
         return mask
+
+    def mask_normalise_policy(self, policy: np.ndarray) -> np.ndarray:
+        # Mask illegal moves
+        masked_policy = policy * self.legal_moves_mask()
+        sum_masked = np.sum(masked_policy)
+
+        normalised_policy = masked_policy / sum_masked
+        return normalised_policy

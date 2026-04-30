@@ -1,5 +1,6 @@
-from src.game import Game
 import numpy as np
+
+from src.game import Game
 
 
 class Hex(Game):
@@ -23,7 +24,7 @@ class Hex(Game):
             self.pie_rule_used = True
         else:
             row, col = divmod(action, self.size2)
-            self.state[row,col] = self.current_player
+            self.state[row, col] = self.current_player
         self.current_player = -self.current_player
         self.turn += 1
 
@@ -41,10 +42,14 @@ class Hex(Game):
         start_positions = []
         prev_move_player = self.current_player * -1
         if prev_move_player == 1:  # Player 1 connects top to bottom
-            start_positions = [(0, col) for col in range(n) if self.state[0, col] == prev_move_player]
+            start_positions = [
+                (0, col) for col in range(n) if self.state[0, col] == prev_move_player
+            ]
             goal_check = lambda x, y: x == n - 1
         else:  # Player 2 connects left to right
-            start_positions = [(row, 0) for row in range(n) if self.state[row, 0] == prev_move_player]
+            start_positions = [
+                (row, 0) for row in range(n) if self.state[row, 0] == prev_move_player
+            ]
             goal_check = lambda x, y: y == n - 1
 
         directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, 1), (1, -1)]
@@ -69,7 +74,9 @@ class Hex(Game):
 
     def is_legal_move(self, action: int) -> bool:
         row, col = divmod(action, self.size2)
-        return (action == self.size1 * self.size2 and self.turn == 2) or self.state[row,col] == 0
+        return (action == self.size1 * self.size2 and self.turn == 2) or self.state[
+            row, col
+        ] == 0
 
     def copy(self) -> "Hex":
         new_game = self.create_game()
@@ -86,12 +93,28 @@ class Hex(Game):
         self.pie_rule_used = False
 
     def encode_state(self) -> np.ndarray:
-        first_player_plane = (self.state == 1).astype(int)
-        second_player_plane = (self.state == -1).astype(int)
-        turn_indicator_plane = np.ones_like(first_player_plane) \
-                            if (self.current_player == 1) \
-                            else np.zeros_like(first_player_plane)
-        swap_move_plane = np.ones_like(first_player_plane) \
-                                    if (self.pie_rule_used) \
-                                    else np.zeros_like(first_player_plane)
-        return np.stack([first_player_plane, second_player_plane, turn_indicator_plane, swap_move_plane], axis=0)
+        if self.current_player == 1:
+            return super().encode_state()
+
+        # Flip on one diagonal so network always sees current
+        # player going the top-bottom direction even if second
+        # player in reality traverses the left-right route
+        encoded_state = super().encode_state()
+        encoded_state = np.rot90(encoded_state, k=1, axes=(1, 2))
+        encoded_state = np.flip(encoded_state, axis=2)
+        return encoded_state
+
+    def mask_normalise_policy(self, policy: np.ndarray) -> np.ndarray:
+        if self.current_player == 1:
+            return super().mask_normalise_policy(policy)
+
+        swap_move = policy[-1]
+        policy = np.delete(policy, -1)
+        policy_2d = policy.reshape(self.size1, self.size2)
+
+        policy_2d = np.flip(policy_2d, axis=1)
+        policy_2d = np.rot90(policy_2d, k=3)
+        transfomed_policy = policy_2d.flatten()
+        transformed_policy = np.append(transfomed_policy, swap_move)
+
+        return super().mask_normalise_policy(transformed_policy)
