@@ -1,27 +1,32 @@
-from torch.multiprocessing import Queue
-from src.game import Game
-from src.node import Node
-import numpy as np
 from typing import List
+
+import numpy as np
+import torch
+
+from src.node import Node
 
 
 class MCTS:
-    def __init__(self,
+    def __init__(
+        self,
         root: Node,
         num_simulations: int,
         training: bool,
         sampling: bool,
-        request_queue: Queue,
-        response_queue: Queue,
-        wid: int
+        parallelised: bool,
+        **kwargs,
     ) -> None:
         self.root = root
         self.num_simulations = num_simulations
         self.training = training
         self.sampling = sampling
-        self.request_queue = request_queue
-        self.response_queue = response_queue
-        self.wid = wid
+        self.parallelised = parallelised
+        if parallelised:
+            self.request_queue = kwargs["request_queue"]
+            self.response_queue = kwargs["response_queue"]
+            self.wid = kwargs["wid"]
+        else:
+            self.model = kwargs["model"]
 
     def compute_improved_policy(self) -> np.ndarray:
         for _ in range(self.num_simulations):
@@ -59,12 +64,25 @@ class MCTS:
             # Get winner is from a global perspective, change to the perspective of the current player
             # Negate it since the current player is one that has to make a move, but the game has been won
             # by the player that just made the move.
-            return -(selected_node.game.get_winner() * selected_node.game.current_player)
+            return -(
+                selected_node.game.get_winner() * selected_node.game.current_player
+            )
 
         encoded_state = selected_node.game.encode_state()
-        self.request_queue.put((self.wid, encoded_state))
-        policy, value = self.response_queue.get()
-        normalised_p = self._mask_normalise_policy(policy, selected_node.game)
+        if self.parallelised:
+            self.request_queue.put((self.wid, encoded_state))
+            policy, value = self.response_queue.get()
+        else:
+            tensor_state = (
+                torch.from_numpy(encoded_state.copy())
+                .float()
+                .unsqueeze(0)
+                .to(next(self.model.parameters()).device)
+            )
+            policy, value = self.model.predict(tensor_state)
+            policy = policy[0]
+
+        normalised_p = selected_node.game.mask_normalise_policy(policy)
         if selected_node == self.root and self.training:
             noise = np.random.dirichlet(0.03 * np.ones(selected_node.game.policy_size))
             epsilon = 0.25
@@ -81,11 +99,3 @@ class MCTS:
             node.Ns += 1
             node.Qs += value
             value = -value
-
-    def _mask_normalise_policy(self, policy: np.ndarray, game: Game) -> np.ndarray:
-        # Mask illegal moves
-        masked_policy = policy * game.legal_moves_mask()
-        sum_masked = np.sum(masked_policy)
-
-        normalised_policy = masked_policy / sum_masked
-        return normalised_policy
