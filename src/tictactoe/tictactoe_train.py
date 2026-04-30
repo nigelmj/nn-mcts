@@ -1,7 +1,10 @@
+from typing import List, Tuple
+
+import numpy as np
+import torch.multiprocessing as mp
+
 from src.tictactoe.tictactoe_logic import TicTacToe
 from src.train_pipeline import GameZero
-from typing import Tuple, List
-import numpy as np
 
 
 class TicTacToeZero(GameZero):
@@ -58,22 +61,27 @@ class TicTacToeZero(GameZero):
             np.array(augmented_values),
         )
 
+
 training_config = {
-    "iterations": 10,
+    "iterations": 2,
     "games_per_iteration": 100,
-    "max_iter_per_train_step": 5,
     "num_simulations": 50,
-    "batch_size": 32,
-    "episode_data_size": 50000,
-    "checkpoint_frequency": 50,
-    "num_epochs": 10,
-    "tournament_games": 40,
-    "update_threshold": 0.50,
-    "stochastic_threshold": 15,
+    "num_steps": 1024,
+    "batch_size": 256,
+    "replay_buffer_size": 5000,
+    "checkpoint_frequency": 5,
+    # "tournament_games": 40,
+    # "update_threshold": 0.50,
+    "stochastic_threshold": 5,
     "path": "src/tictactoe/models/TicTacToe",
+    "num_workers": mp.cpu_count() - 1,
+    "size1": 3,
+    "size2": 3,
+    "policy_size": 9,
 }
 
 if __name__ == "__main__":
+    mp.set_start_method("spawn", force=True)
     az = TicTacToeZero()
     model = az.build_network(2)
     az.training_pipeline(training_config)

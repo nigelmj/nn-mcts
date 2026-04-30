@@ -20,7 +20,7 @@ class ResidualBlock(nn.Module):
         return out
 
 class AlphaZeroNetwork(nn.Module):
-    def __init__(self, game_size1, game_size2, num_channels, policy_size):
+    def __init__(self, game_size1, game_size2, policy_size, num_channels=2):
         super(AlphaZeroNetwork, self).__init__()
 
         # Initial conv layer
@@ -28,7 +28,7 @@ class AlphaZeroNetwork(nn.Module):
         self.bn1 = nn.BatchNorm2d(64)
 
         # Residual blocks
-        self.residual_blocks = nn.ModuleList([ResidualBlock(64) for _ in range(5)])
+        self.residual_blocks = nn.ModuleList([ResidualBlock(64) for _ in range(8)])
 
         # Policy head
         self.policy_conv = nn.Conv2d(64, 2, kernel_size=1)
@@ -51,12 +51,12 @@ class AlphaZeroNetwork(nn.Module):
 
         # Policy head
         policy = F.relu(self.policy_bn(self.policy_conv(x)))
-        policy = policy.view(policy.size(0), -1)
+        policy = torch.flatten(policy, start_dim=1)
         policy = self.policy_fc(policy)
 
         # Value head
         value = F.relu(self.value_bn(self.value_conv(x)))
-        value = value.view(value.size(0), -1)
+        value = torch.flatten(value, start_dim=1)
         value = F.relu(self.value_fc1(value))
         value = self.value_fc2(value)
 
@@ -66,8 +66,14 @@ class AlphaZeroNetwork(nn.Module):
         with torch.no_grad():
             self.eval()
             policy_log, value_tensor = self(state_tensor)
-
             policy = torch.exp(policy_log).cpu().numpy()
             value = value_tensor.cpu().numpy()[0][0]
-
             return policy, value
+
+    def predict_batch(self, state_batch_tensor):
+        with torch.no_grad():
+            self.eval()
+            policy_log, value_tensor = self(state_batch_tensor)
+            policies = torch.exp(policy_log).cpu().numpy()
+            values = value_tensor.cpu().numpy().flatten()
+            return policies, values

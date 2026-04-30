@@ -1,7 +1,10 @@
-from src.train_pipeline import GameZero
-from src.othello.othello_logic import Othello
-from typing import Tuple, List
+from typing import List, Tuple
+
 import numpy as np
+import torch.multiprocessing as mp
+
+from src.othello.othello_logic import Othello
+from src.train_pipeline import GameZero
 
 
 class OthelloZero(GameZero):
@@ -68,20 +71,26 @@ class OthelloZero(GameZero):
 
 
 training_config = {
-    "iterations": 100,
-    "games_per_iteration": 200,
-    "max_iter_per_train_step": 10,
+    "iterations": 3000,
+    "games_per_iteration": 100,
     "num_simulations": 50,
-    "batch_size": 32,
-    "episode_data_size": 200000,
-    "checkpoint_frequency": 100,
-    "num_epochs": 10,
-    "tournament_games": 40,
-    "update_threshold": 0.40,
-    "stochastic_threshold": 30,
+    "num_steps": 16384,
+    "batch_size": 256,
+    "replay_buffer_size": 200_000,
+    "checkpoint_frequency": 50,
+    # "tournament_games": 40,
+    # "update_threshold": 0.40,
+    "stochastic_threshold": 20,
     "path": "src/othello/models/othello",
+    "num_workers": mp.cpu_count() - 1,
+    "size1": 8,
+    "size2": 8,
+    "policy_size": 65,
 }
 
-az = OthelloZero()
-model = az.build_network(2)
-az.training_pipeline(training_config)
+if __name__ == "__main__":
+    mp.set_start_method("spawn", force=True)
+    print(f"The number of cores available is {mp.cpu_count()}")
+    az = OthelloZero()
+    model = az.build_network(2)
+    az.training_pipeline(training_config)

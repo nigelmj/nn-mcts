@@ -1,6 +1,9 @@
 venv
+logs
 **/*models
 **/__pycache__
 **/.DS_Store
 **/tests
-**/*job_script.txt
+**/*.qsub
+**/*.sbatch
+exclude.txt

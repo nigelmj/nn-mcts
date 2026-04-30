@@ -1,7 +1,11 @@
-from src.train_pipeline import GameZero
-from src.hex.hex_logic import Hex
-from typing import Tuple, List
+from typing import List, Tuple
+
 import numpy as np
+import torch.multiprocessing as mp
+
+from src.hex.hex_logic import Hex
+from src.train_pipeline import GameZero
+
 
 class HexZero(GameZero):
     def __init__(self):
@@ -44,20 +48,25 @@ class HexZero(GameZero):
 
 
 training_config = {
-    "iterations": 100,
-    "games_per_iteration": 200,
-    "max_iter_per_train_step": 10,
-    "num_simulations": 25,
-    "batch_size": 32,
-    "episode_data_size": 300000,
-    "checkpoint_frequency": 200,
-    "num_epochs": 10,
-    "tournament_games": 40,
-    "update_threshold": 0.60,
-    "stochastic_threshold": 30,
+    "iterations": 500,
+    "games_per_iteration": 100,
+    "num_simulations": 150,
+    "num_steps": 8192,
+    "batch_size": 256,
+    "replay_buffer_size": 200_000,
+    "checkpoint_frequency": 50,
+    # "tournament_games": 40,
+    # "update_threshold": 0.60,
+    "stochastic_threshold": 25,
     "path": "src/hex/models/hex",
+    "num_workers": mp.cpu_count() - 1,
+    "size1": 7,
+    "size2": 7,
+    "policy_size": 50,
 }
 
-az = HexZero()
-model = az.build_network(4)
-az.training_pipeline(training_config)
+if __name__ == "__main__":
+    mp.set_start_method("spawn", force=True)
+    az = HexZero()
+    model = az.build_network(2)
+    az.training_pipeline(training_config)

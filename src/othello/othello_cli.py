@@ -1,6 +1,6 @@
 from src.cli_interface import GameCLI
-from src.player import PlayerType
 from src.othello.othello_logic import Othello
+from src.player import PlayerType
 
 
 class OthelloCLI(GameCLI):
@@ -15,11 +15,12 @@ class OthelloCLI(GameCLI):
             print(
                 str(ind + 1)
                 + "  "
-                + " | ".join(["B" if x == 1 else "W" if x == -1 else " " for x in row])
+                + " | ".join(["○" if x == 1 else "●" if x == -1 else " " for x in row])
             )
             print("   " + "-" * 30)
 
 
 if __name__ == "__main__":
     cli = OthelloCLI(PlayerType.get_type_pair())
+    cli.initialise_model("src/othello/models/othello_checkpoint_300.pt", 50)
     cli.play()
