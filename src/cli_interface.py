@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
-from src.player import PlayerType
+
 from src.game import Game
+from src.player import PlayerType
 from src.tests.model_agent import ModelAgent
 
 
@@ -19,7 +20,9 @@ class GameCLI(ABC):
         raise NotImplementedError
 
     def initialise_model(self, model_path: str, simulations: int) -> None:
-        self.model = ModelAgent(model_path, self.game.size1, self.game.size2, self.game.policy_size)
+        self.model = ModelAgent(
+            model_path, self.game.size1, self.game.size2, self.game.policy_size
+        )
         self.model.reset(self.game)
         self.simulations = simulations
 
@@ -87,7 +90,7 @@ class GameCLI(ABC):
         winner = self.game.get_winner()
         if winner:
             self.display_state()
-            print("Winner is:" , winner)
+            print("Winner is:", winner)
             print(f"Player {self.player_1 if winner == 1 else self.player_2} wins!")
             return
         self.display_state()
