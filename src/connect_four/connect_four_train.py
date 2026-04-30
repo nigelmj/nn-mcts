@@ -1,9 +1,10 @@
-import torch.multiprocessing as mp
-from src.train_pipeline import GameZero
-from src.connect_four.connect_four_logic import ConnectFour
-from src.parallel_utils import worker_generate_games
-from typing import Tuple, List
+from typing import List, Tuple
+
 import numpy as np
+import torch.multiprocessing as mp
+
+from src.connect_four.connect_four_logic import ConnectFour
+from src.train_pipeline import GameZero
 
 
 class ConnectFourZero(GameZero):
@@ -41,59 +42,27 @@ class ConnectFourZero(GameZero):
             np.array(augmented_values),
         )
 
-    def parallel_generate(self,
-        total_games: int,
-        num_simulations: int,
-        threshold: int,
-        req_q: mp.Queue,
-        resp_q_dict: dict[int, mp.Queue],
-        num_workers: int
-    ) -> List:
-        games_per_worker = total_games // num_workers
-
-        ctx = mp.get_context("spawn")
-        processes = []
-        results_queue = mp.Queue()
-
-        for wid in range(num_workers):
-            p = ctx.Process(
-                target=worker_generate_games,
-                args=(req_q, resp_q_dict[wid], ConnectFourZero, games_per_worker, num_simulations, threshold, results_queue, wid)
-            )
-            processes.append(p)
-            p.start()
-
-        overall_results = []
-        for _ in range(num_workers):
-            worker_result = results_queue.get()
-            print("Worker result length of result:", len(worker_result))
-            overall_results.extend(worker_result)
-
-        for p in processes:
-            p.join()
-        return overall_results
-
 
 training_config = {
-    "iterations": 100,
-    "games_per_iteration": 200,
-    "max_iter_per_train_step": 20,
-    "num_simulations": 50,
-    "batch_size": 32,
-    "episode_data_size": 60000,
-    "checkpoint_frequency": 200,
-    "num_epochs": 10,
-    "tournament_games": 40,
-    "update_threshold": 0.60,
-    "stochastic_threshold": 20,
-    "path": "src/connect4/models/connect4",
+    "iterations": 3000,
+    "games_per_iteration": 100,
+    "num_simulations": 100,
+    "num_steps": 16384,
+    "batch_size": 256,
+    "replay_buffer_size": 100_000,
+    "checkpoint_frequency": 500,
+    # "tournament_games": 40,
+    # "update_threshold": 0.60,
+    "stochastic_threshold": 10,
+    "path": "src/connect_four/models/connect_four",
     "num_workers": mp.cpu_count() - 1,
     "size1": 6,
     "size2": 7,
-    "policy_size": 42
+    "policy_size": 42,
 }
 
 if __name__ == "__main__":
+    mp.set_start_method("spawn", force=True)
     az = ConnectFourZero()
     model = az.build_network(2)
     az.training_pipeline(training_config)

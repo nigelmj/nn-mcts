@@ -1,9 +1,10 @@
-import torch.multiprocessing as mp
-from src.train_pipeline import GameZero
-from src.hex.hex_logic import Hex
-from src.parallel_utils import worker_generate_games
-from typing import Tuple, List
+from typing import List, Tuple
+
 import numpy as np
+import torch.multiprocessing as mp
+
+from src.hex.hex_logic import Hex
+from src.train_pipeline import GameZero
 
 
 class HexZero(GameZero):
@@ -45,59 +46,27 @@ class HexZero(GameZero):
             np.array(augmented_values),
         )
 
-    def parallel_generate(self,
-        total_games: int,
-        num_simulations: int,
-        threshold: int,
-        req_q: mp.Queue,
-        resp_q_dict: dict[int, mp.Queue],
-        num_workers: int
-    ) -> List:
-        games_per_worker = total_games // num_workers
-
-        ctx = mp.get_context("spawn")
-        processes = []
-        results_queue = mp.Queue()
-
-        for wid in range(num_workers):
-            p = ctx.Process(
-                target=worker_generate_games,
-                args=(req_q, resp_q_dict[wid], HexZero, games_per_worker, num_simulations, threshold, results_queue, wid)
-            )
-            processes.append(p)
-            p.start()
-
-        overall_results = []
-        for _ in range(num_workers):
-            worker_result = results_queue.get()
-            print("Worker result length of result:", len(worker_result))
-            overall_results.extend(worker_result)
-
-        for p in processes:
-            p.join()
-        return overall_results
-
 
 training_config = {
-    "iterations": 100,
-    "games_per_iteration": 200,
-    "max_iter_per_train_step": 10,
-    "num_simulations": 50,
-    "batch_size": 32,
-    "episode_data_size": 300000,
-    "checkpoint_frequency": 200,
-    "num_epochs": 10,
-    "tournament_games": 40,
-    "update_threshold": 0.60,
-    "stochastic_threshold": 30,
+    "iterations": 500,
+    "games_per_iteration": 100,
+    "num_simulations": 150,
+    "num_steps": 8192,
+    "batch_size": 256,
+    "replay_buffer_size": 200_000,
+    "checkpoint_frequency": 50,
+    # "tournament_games": 40,
+    # "update_threshold": 0.60,
+    "stochastic_threshold": 25,
     "path": "src/hex/models/hex",
     "num_workers": mp.cpu_count() - 1,
     "size1": 7,
     "size2": 7,
-    "policy_size": 50
+    "policy_size": 50,
 }
 
 if __name__ == "__main__":
+    mp.set_start_method("spawn", force=True)
     az = HexZero()
-    model = az.build_network(4)
+    model = az.build_network(2)
     az.training_pipeline(training_config)
