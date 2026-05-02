@@ -5,7 +5,7 @@ from src.game import Game
 
 class Hex(Game):
     def __init__(self) -> None:
-        super().__init__(7, 7, 50)
+        super().__init__(11, 11, 122)
         self.turn = 1
         self.pie_rule_used = False
 
