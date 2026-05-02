@@ -32,7 +32,7 @@ class ReplayMemory:
         self.size = min(self.size + 1, self.max_size)
         self.index = (self.index + 1) % self.max_size
 
-    def extend(self, objs: List[Tuple[np.ndarray]]) -> None:
+    def extend(self, objs: List[Tuple[np.ndarray, np.ndarray, np.ndarray]]) -> None:
         for obj in objs:
             self.append(obj)
 
@@ -107,9 +107,6 @@ class GameZero(ABC):
             action = np.random.choice(len(improved_policy), p=improved_policy)
             self.game.make_move(action)
 
-            # if action in root.children:
-            #     root = root.children[action]
-            #     root.parent = None
             move_count += 1
 
         result = self.game.get_winner()
@@ -136,7 +133,7 @@ class GameZero(ABC):
         req_q: mp.Queue,
         resp_q_dict: dict[int, mp.Queue],
         num_workers: int,
-    ) -> List:
+    ) -> List[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
         games_per_worker = total_games // num_workers
 
         # start = time.time()
@@ -171,6 +168,8 @@ class GameZero(ABC):
         return overall_results
 
     def train_network(self, replay_buffer, num_steps: int, batch_size: int) -> None:
+        assert self.model is not None
+
         # Training loop
         self.model.train()
         history = {"policy_loss": [], "value_loss": []}
@@ -230,6 +229,8 @@ class GameZero(ABC):
         return -torch.sum(target_policies * pred_policies, dim=1).mean()
 
     def training_pipeline(self, config: Dict) -> None:
+        assert self.model is not None
+
         games_played = 0
         replay_buffer = ReplayMemory(max_size=config["replay_buffer_size"])
 
@@ -250,9 +251,9 @@ class GameZero(ABC):
             response_queues_dict,
             self.device,
             config["num_workers"],
-            config["size1"],
-            config["size2"],
-            config["policy_size"],
+            self.game.size1,
+            self.game.size2,
+            self.game.policy_size,
         )
 
         self.inference_worker.start()

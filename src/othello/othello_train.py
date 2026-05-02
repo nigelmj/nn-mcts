@@ -71,26 +71,26 @@ class OthelloZero(GameZero):
 
 
 training_config = {
+    # Data Generation Stage
     "iterations": 3000,
     "games_per_iteration": 100,
-    "num_simulations": 50,
-    "num_steps": 16384,
-    "batch_size": 256,
+    "stochastic_threshold": 20,
+    "num_simulations": 100,
+    # Network Training Stage
     "replay_buffer_size": 200_000,
-    "checkpoint_frequency": 50,
+    "num_steps": 8192,
+    "batch_size": 256,
+    # Tournament Stage
     # "tournament_games": 40,
     # "update_threshold": 0.40,
-    "stochastic_threshold": 20,
+    # Parallelism and Model Persistence
+    "checkpoint_frequency": 500,
     "path": "src/othello/models/othello",
     "num_workers": mp.cpu_count() - 1,
-    "size1": 8,
-    "size2": 8,
-    "policy_size": 65,
 }
 
 if __name__ == "__main__":
     mp.set_start_method("spawn", force=True)
-    print(f"The number of cores available is {mp.cpu_count()}")
     az = OthelloZero()
     model = az.build_network(2)
     az.training_pipeline(training_config)

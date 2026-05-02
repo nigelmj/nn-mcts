@@ -63,21 +63,22 @@ class TicTacToeZero(GameZero):
 
 
 training_config = {
-    "iterations": 2,
+    # Data Generation Stage
+    "iterations": 10,
     "games_per_iteration": 100,
+    "stochastic_threshold": 5,
     "num_simulations": 50,
+    # Network Training Stage
+    "replay_buffer_size": 5000,
     "num_steps": 1024,
     "batch_size": 256,
-    "replay_buffer_size": 5000,
-    "checkpoint_frequency": 5,
+    # Tournament Stage
     # "tournament_games": 40,
     # "update_threshold": 0.50,
-    "stochastic_threshold": 5,
+    # Parallelism and Model Persistence
+    "checkpoint_frequency": 5,
     "path": "src/tictactoe/models/TicTacToe",
     "num_workers": mp.cpu_count() - 1,
-    "size1": 3,
-    "size2": 3,
-    "policy_size": 9,
 }
 
 if __name__ == "__main__":

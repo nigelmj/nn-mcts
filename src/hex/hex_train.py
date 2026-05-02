@@ -48,21 +48,22 @@ class HexZero(GameZero):
 
 
 training_config = {
+    # Data Generation Stage
     "iterations": 500,
     "games_per_iteration": 100,
-    "num_simulations": 150,
+    "stochastic_threshold": 60,
+    "num_simulations": 200,
+    # Network Training Stage
+    "replay_buffer_size": 200_000,
     "num_steps": 8192,
     "batch_size": 256,
-    "replay_buffer_size": 200_000,
-    "checkpoint_frequency": 50,
+    # Tournament Stage
     # "tournament_games": 40,
     # "update_threshold": 0.60,
-    "stochastic_threshold": 25,
+    # Parallelism and Model Persistence
+    "checkpoint_frequency": 50,
     "path": "src/hex/models/hex",
     "num_workers": mp.cpu_count() - 1,
-    "size1": 7,
-    "size2": 7,
-    "policy_size": 50,
 }
 
 if __name__ == "__main__":

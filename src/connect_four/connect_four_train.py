@@ -44,21 +44,22 @@ class ConnectFourZero(GameZero):
 
 
 training_config = {
+    # Data Generation Stage
     "iterations": 3000,
     "games_per_iteration": 100,
+    "stochastic_threshold": 10,
     "num_simulations": 100,
-    "num_steps": 16384,
-    "batch_size": 256,
+    # Network Training Stage
     "replay_buffer_size": 100_000,
-    "checkpoint_frequency": 500,
+    "num_steps": 8192,
+    "batch_size": 256,
+    # Tournament Stage
     # "tournament_games": 40,
     # "update_threshold": 0.60,
-    "stochastic_threshold": 10,
+    # Parallelism and Model Persistence
+    "checkpoint_frequency": 500,
     "path": "src/connect_four/models/connect_four",
     "num_workers": mp.cpu_count() - 1,
-    "size1": 6,
-    "size2": 7,
-    "policy_size": 42,
 }
 
 if __name__ == "__main__":
