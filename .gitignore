@@ -1,6 +1,6 @@
 venv
 logs
-**/*models
+**/*.pt
 **/__pycache__
 **/.DS_Store
 **/tests

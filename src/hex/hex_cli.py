@@ -8,7 +8,9 @@ class HexCLI(GameCLI):
         super().__init__(Hex(), player_pair, "Red", "Blue")
 
     def display_state(self) -> None:
-        print("\nstate:")
+        print("\n● goes top to bottom")
+        print("○ goes left to right")
+        print("state:")
         count = 0
         for row in self.game.state:
             print(
@@ -20,5 +22,5 @@ class HexCLI(GameCLI):
 
 if __name__ == "__main__":
     cli = HexCLI(PlayerType.get_type_pair())
-    cli.initialise_model("src/hex/models/Hex_checkpoint_10.pt", 100)
+    cli.initialise_model("src/hex/models/Hex_checkpoint_30.pt", 500)
     cli.play()

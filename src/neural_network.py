@@ -19,6 +19,7 @@ class ResidualBlock(nn.Module):
         out = F.relu(out)
         return out
 
+
 class AlphaZeroNetwork(nn.Module):
     def __init__(self, game_size1, game_size2, policy_size, num_channels=2):
         super(AlphaZeroNetwork, self).__init__()

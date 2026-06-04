@@ -10,6 +10,7 @@ class Game(ABC):
         self.state = np.zeros((self.size1, self.size2))
         self.policy_size = policy_size
         self.set_player(1)
+        self.move_number = 1
 
     @abstractmethod
     def make_move(self, action: int) -> None:

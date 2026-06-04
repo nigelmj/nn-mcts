@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 
 from src.game import Game
+from src.model_agent import ModelAgent
 from src.player import PlayerType
-from src.tests.model_agent import ModelAgent
 
 
 class GameCLI(ABC):

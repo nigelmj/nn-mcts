@@ -1,3 +1,4 @@
+import pickle
 import time
 from abc import ABC, abstractmethod
 from random import sample
@@ -39,6 +40,18 @@ class ReplayMemory:
     def sample(self, batch_size: int) -> List[Tuple[np.ndarray]]:
         indices = sample(range(self.size), batch_size)
         return [self.buffer[index] for index in indices]
+
+    def save(self, save_path: str) -> None:
+        with open(save_path, "wb") as f:
+            pickle.dump(
+                {
+                    "buffer": self.buffer,
+                    "max_size": self.max_size,
+                    "index": self.index,
+                    "size": self.size,
+                },
+                f,
+            )
 
 
 class GameZero(ABC):
@@ -83,12 +96,12 @@ class GameZero(ABC):
 
         self.game.reset()
         move_count = 0
+        root = Node(self.game.copy(), None, -1, 0)
 
         while not self.game.is_game_over():
             state = self.game.encode_state()
 
             sampling = move_count < threshold
-            root = Node(self.game.copy(), None, -1, 0)
             mcts = MCTS(
                 root,
                 num_simulations,
@@ -106,6 +119,9 @@ class GameZero(ABC):
 
             action = np.random.choice(len(improved_policy), p=improved_policy)
             self.game.make_move(action)
+
+            root = root.children[action]
+            root.parent = None
 
             move_count += 1
 
@@ -228,6 +244,15 @@ class GameZero(ABC):
     def compute_policy_loss(self, pred_policies, target_policies):
         return -torch.sum(target_policies * pred_policies, dim=1).mean()
 
+    def clean_weight_keys(self, state_dict: Dict) -> Dict:
+        new_state_dict = {}
+        for k, v in state_dict.items():
+            # Strip the prefix dynamically
+            clean_k = k.replace("_orig_mod.", "")
+            new_state_dict[clean_k] = v.detach().cpu()
+
+        return new_state_dict
+
     def training_pipeline(self, config: Dict) -> None:
         assert self.model is not None
 
@@ -243,7 +268,7 @@ class GameZero(ABC):
         for wid in range(config["num_workers"]):
             response_queues_dict[wid] = ctx.Queue()
 
-        state_dict = {k: v.detach().cpu() for k, v in self.model.state_dict().items()}
+        state_dict = self.clean_weight_keys(self.model.state_dict())
 
         self.inference_worker = InferenceWorker(
             state_dict,
@@ -292,9 +317,7 @@ class GameZero(ABC):
                 batch_size=config["batch_size"],
             )
 
-            new_state_dict = {
-                k: v.detach().cpu() for k, v in self.model.state_dict().items()
-            }
+            new_state_dict = self.clean_weight_keys(self.model.state_dict())
             request_queue.put(("update_weights", iteration, new_state_dict))
             response = response_queues_dict["model"].get()
             print(response)

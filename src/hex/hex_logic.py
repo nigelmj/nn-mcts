@@ -6,7 +6,7 @@ from src.game import Game
 class Hex(Game):
     def __init__(self) -> None:
         super().__init__(11, 11, 122)
-        self.turn = 1
+        self.move_number = 1
         self.pie_rule_used = False
 
     def create_game(self) -> "Hex":
@@ -14,23 +14,23 @@ class Hex(Game):
 
     def get_legal_moves(self) -> np.ndarray:
         legal_moves = np.flatnonzero(self.state == 0)
-        if self.turn == 2:
+        if self.move_number == 2:
             return np.append(legal_moves, self.size1 * self.size2)
         return legal_moves
 
     def make_move(self, action: int) -> None:
-        if action == self.size1 * self.size2 and self.turn == 2:
+        if action == self.size1 * self.size2 and self.move_number == 2:
             self.state = -self.state
             self.pie_rule_used = True
         else:
             row, col = divmod(action, self.size2)
             self.state[row, col] = self.current_player
         self.current_player = -self.current_player
-        self.turn += 1
+        self.move_number += 1
 
     def is_game_over(self) -> bool:
         # Game requires both players to play at least num_size turns each to finish
-        if self.turn < (self.size1 + self.size2 - 1):
+        if self.move_number < (self.size1 + self.size2 - 1):
             return False
         return self.get_winner() != 0
 
@@ -74,22 +74,22 @@ class Hex(Game):
 
     def is_legal_move(self, action: int) -> bool:
         row, col = divmod(action, self.size2)
-        return (action == self.size1 * self.size2 and self.turn == 2) or self.state[
-            row, col
-        ] == 0
+        return (
+            action == self.size1 * self.size2 and self.move_number == 2
+        ) or self.state[row, col] == 0
 
     def copy(self) -> "Hex":
         new_game = self.create_game()
         new_game.set_state(np.copy(self.state))
         new_game.set_player(self.current_player)
-        new_game.turn = self.turn
+        new_game.move_number = self.move_number
         new_game.pie_rule_used = self.pie_rule_used
         return new_game
 
     def reset(self) -> None:
         self.state = np.zeros((self.size1, self.size2))
         self.set_player(1)
-        self.turn = 1
+        self.move_number = 1
         self.pie_rule_used = False
 
     def encode_state(self) -> np.ndarray:
