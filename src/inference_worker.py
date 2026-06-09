@@ -4,9 +4,6 @@ import numpy as np
 import torch
 import torch.multiprocessing as mp
 
-# import time
-from numpy.ma import isin
-
 from src.neural_network import AlphaZeroNetwork
 
 
