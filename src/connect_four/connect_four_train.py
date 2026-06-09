@@ -17,30 +17,21 @@ class ConnectFourZero(GameZero):
         policies: List[np.ndarray],
         values: List[int],
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        augmented_states = []
-        augmented_policies = []
-        augmented_values = []
+        states = np.asarray(states)
+        policies = np.asarray(policies)
+        values = np.asarray(values)
 
-        for state, policy, value in zip(states, policies, values):
-            # Original
-            augmented_states.append(state)
-            augmented_policies.append(policy)
-            augmented_values.append(value)
-
-            # Lateral flip
-            policy_2d = policy.reshape(self.game.size1, self.game.size2)
-            flipped_state = np.flip(state, axis=2)
-            flipped_policy = np.fliplr(policy_2d).flatten()
-
-            augmented_states.append(flipped_state)
-            augmented_policies.append(flipped_policy)
-            augmented_values.append(value)
-
-        return (
-            np.array(augmented_states),
-            np.array(augmented_policies),
-            np.array(augmented_values),
+        flipped_states = np.flip(states, axis=3)
+        policies_2d = policies.reshape(-1, self.game.size1, self.game.size2)
+        flipped_policies = np.flip(policies_2d, axis=2)
+        flipped_policies = flipped_policies.reshape(
+            -1, self.game.size1 * self.game.size2
         )
+
+        augmented_states = np.concatenate([states, flipped_states], axis=0)
+        augmented_policies = np.concatenate([policies, flipped_policies], axis=0)
+        augmented_values = np.concatenate([values, values], axis=0)
+        return (augmented_states, augmented_policies, augmented_values)
 
 
 training_config = {

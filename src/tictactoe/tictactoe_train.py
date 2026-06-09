@@ -11,6 +11,48 @@ class TicTacToeZero(GameZero):
     def __init__(self):
         super().__init__(TicTacToe())
 
+    def get_transforms(self, flip_axis: int, rot_axes: Tuple[int]):
+        return [
+            lambda x: x,
+            lambda x: np.rot90(x, k=1, axes=rot_axes),
+            lambda x: np.rot90(x, k=2, axes=rot_axes),
+            lambda x: np.rot90(x, k=3, axes=rot_axes),
+            lambda x: np.flip(x, axis=flip_axis),
+            lambda x: np.rot90(np.flip(x, axis=flip_axis), k=1, axes=rot_axes),
+            lambda x: np.rot90(np.flip(x, axis=flip_axis), k=2, axes=rot_axes),
+            lambda x: np.rot90(np.flip(x, axis=flip_axis), k=3, axes=rot_axes),
+        ]
+
+    def augment_data_new(
+        self,
+        states: List[np.ndarray],
+        policies: List[np.ndarray],
+        values: List[int],
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        states = np.asarray(states)
+        policies = np.asarray(policies)
+        values = np.asarray(values)
+
+        state_transforms = self.get_transforms(3, (2, 3))
+
+        augmented_states = np.concatenate(
+            [t(states) for t in state_transforms],
+            axis=0,
+        )
+
+        policies = policies.reshape(-1, self.game.size1, self.game.size2)
+        policy_transforms = self.get_transforms(2, (1, 2))
+        augmented_policies = np.concatenate(
+            [t(policies) for t in policy_transforms],
+            axis=0,
+        )
+        augmented_policies = augmented_policies.reshape(
+            -1, self.game.size1 * self.game.size2
+        )
+
+        augmented_values = np.tile(values, 8)
+        return (augmented_states, augmented_policies, augmented_values)
+
     def augment_data(
         self,
         states: List[np.ndarray],
