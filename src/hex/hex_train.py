@@ -17,34 +17,28 @@ class HexZero(GameZero):
         policies: List[np.ndarray],
         values: List[int],
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        augmented_states = []
-        augmented_policies = []
-        augmented_values = []
+        states = np.asarray(states)
+        policies = np.asarray(policies)
+        values = np.asarray(values)
 
-        for state, policy, value in zip(states, policies, values):
-            # Original
-            augmented_states.append(state)
-            augmented_policies.append(policy)
-            augmented_values.append(value)
+        rotated_states = np.rot90(states, k=2, axes=(2, 3))
 
-            # Rotated
-            swap_move = policy[-1]
-            policy = np.delete(policy, -1)
-            policy_2d = policy.reshape(self.game.size1, self.game.size2)
-
-            rotated_state = np.rot90(state, k=2, axes=(1, 2))
-            rotated_policy = np.rot90(policy_2d, k=2).flatten()
-            full_policy = np.append(rotated_policy, swap_move)
-
-            augmented_states.append(rotated_state)
-            augmented_policies.append(full_policy)
-            augmented_values.append(value)
-
-        return (
-            np.array(augmented_states),
-            np.array(augmented_policies),
-            np.array(augmented_values),
+        swap_move_policies = policies[:, -1]
+        tile_move_policies = policies[:, :-1]
+        tile_move_policies = tile_move_policies.reshape(
+            -1, self.game.size1, self.game.size2
         )
+        rotated_policies = np.rot90(tile_move_policies, k=2, axes=(1, 2)).reshape(
+            -1, self.game.size1 * self.game.size2
+        )
+        full_policies = np.concatenate(
+            [rotated_policies, swap_move_policies[:, None]], axis=1
+        )
+
+        augmented_states = np.concatenate([states, rotated_states], axis=0)
+        augmented_policies = np.concatenate([policies, full_policies], axis=0)
+        augmented_values = np.concatenate([values, values], axis=0)
+        return (augmented_states, augmented_policies, augmented_values)
 
 
 training_config = {
