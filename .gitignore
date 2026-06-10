@@ -3,7 +3,8 @@ logs
 **/*.pt
 **/__pycache__
 **/.DS_Store
-**/tests
 **/*.qsub
 **/*.sbatch
 exclude.txt
+**/*.class
+**/*.csv
