@@ -45,15 +45,13 @@ Training spawns one worker process per CPU core (minus one) to generate self-pla
 Subclass `Game` (in `src/game.py`) and implement:
 
 - `make_move`, `get_legal_moves`, `get_winner`, `is_game_over`
-- `encode_state` → 2-channel numpy array (channel 0 = current player, channel 1 = opponent)
+- `encode_state` → 2-channel numpy array (channel 0 = current player, channel 1 = opponent). Two things must hold:
+  1. **Current-player perspective** — the network always sees the board from the side to move, so it learns one policy/value function, not two.
+  2. **Preserved goal direction** — if the game has asymmetric goals (e.g. Hex: connect top-to-bottom vs left-to-right), the encoding must keep the same relative goal regardless of which player is to move. In Hex this means rotating/flipping so the network always sees "top-to-bottom", then transforming the policy indices back after inference. This was an easy bug to miss.
 - `legal_moves_mask` → boolean array with valid moves and action count
 - `mask_normalise_policy` → apply mask and renormalise
 
-**Critical — encode from the current player's perspective.** The neural network should always see the board from the side to move. This lets it learn a single policy and value function rather than separate ones for each player.
-
-**Critical — maintain relative goal direction.** Hex had a bug unnoticed for a year: the board was correctly rotated to always show player 1's orientation, but the flip didn't preserve the relative connection direction. Half the time the network saw "top-to-bottom" and the other half "left-to-right", so it never learned properly. When applying symmetry transforms for data augmentation, ensure the goal orientation stays consistent from the network's point of view. Policy indices must be transformed back to the original board's coordinate system after inference.
-
-Then subclass `GameZero` (in `src/train_pipeline.py`) to define `augment_data` with the appropriate symmetries and a `training_config` dictionary.
+Then subclass `GameZero` (in `src/train_pipeline.py`) to define `augment_data` with the appropriate symmetries and a `training_config` dictionary. When implementing `augment_data`, ensure any symmetry transforms also preserve goal direction and map policy indices back to the original board's coordinate system.
 
 ## Testing
 
