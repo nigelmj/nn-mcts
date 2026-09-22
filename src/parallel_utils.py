@@ -4,7 +4,7 @@ def generation_worker(
     pipeline_class,
     num_games,
     num_simulations,
-    threshold,
+    temperature_schedule,
     results_queue,
     wid,
 ) -> None:
@@ -13,7 +13,7 @@ def generation_worker(
     results = []
     for _ in range(num_games):
         states, policies, values = zero.generate_games(
-            num_simulations, threshold, req_q, resp_q, wid
+            num_simulations, temperature_schedule, req_q, resp_q, wid
         )
         for state, policy, value in zip(states, policies, values):
             results.append((state, policy, value))

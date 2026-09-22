@@ -2,7 +2,7 @@ import pickle
 import time
 from abc import ABC, abstractmethod
 from random import sample
-from typing import Dict, List, Tuple
+from typing import Dict, List, Sequence, Tuple
 
 import numpy as np
 import torch
@@ -15,7 +15,7 @@ from src.game import Game
 
 # from src.tournament import Tournament
 from src.inference_worker import InferenceWorker
-from src.mcts import MCTS
+from src.mcts import MCTS, apply_temperature, temperature_for_move
 from src.neural_network import AlphaZeroNetwork
 from src.node import Node
 from src.parallel_utils import generation_worker
@@ -54,6 +54,26 @@ class ReplayMemory:
             )
 
 
+def resolve_temperature_schedule(config: Dict) -> List[Tuple[int, float]]:
+    """Read a temperature schedule from the config, accepting the older key.
+
+    A config with "temperature_schedule" is used directly. A config with only the older
+    "stochastic_threshold" is converted to [(0, 1.0), (threshold, 0.0)], which reproduces
+    that setting's move selection exactly -- sample below the threshold, play greedily
+    above it -- so configs that have not been migrated keep behaving as they did. What
+    they do gain is the fixed training target: the stored policy is now the full visit
+    distribution at every ply rather than a one-hot above the threshold.
+    """
+    schedule = config.get("temperature_schedule")
+    if schedule:
+        return [(int(move), float(temp)) for move, temp in schedule]
+
+    threshold = config.get("stochastic_threshold")
+    if threshold is None:
+        return [(0, 0.0)]
+    return [(0, 1.0), (int(threshold), 0.0)]
+
+
 class GameZero(ABC):
     def __init__(self, game: Game) -> None:
         self.model = None
@@ -86,7 +106,7 @@ class GameZero(ABC):
     def generate_games(
         self,
         num_simulations: int,
-        threshold: int,
+        temperature_schedule: Sequence[Tuple[int, float]],
         req_q: mp.Queue,
         resp_q: mp.Queue,
         wid: int,
@@ -101,12 +121,10 @@ class GameZero(ABC):
         while not self.game.is_game_over():
             state = self.game.encode_state()
 
-            sampling = move_count < threshold
             mcts = MCTS(
                 root,
                 num_simulations,
                 True,
-                sampling,
                 True,
                 request_queue=req_q,
                 response_queue=resp_q,
@@ -114,10 +132,15 @@ class GameZero(ABC):
             )
             improved_policy = mcts.compute_improved_policy()
 
+            # The target is the full visit distribution, at every ply. Temperature
+            # applies only to picking the move actually played, so late-game positions
+            # still contribute everything the search knows about them.
             states.append(state)
             policies.append(improved_policy)
 
-            action = np.random.choice(len(improved_policy), p=improved_policy)
+            temperature = temperature_for_move(temperature_schedule, move_count)
+            play_policy = apply_temperature(improved_policy, temperature)
+            action = int(np.random.choice(len(play_policy), p=play_policy))
             self.game.make_move(action)
 
             root = root.children[action]
@@ -145,7 +168,7 @@ class GameZero(ABC):
         self,
         total_games: int,
         num_simulations: int,
-        threshold: int,
+        temperature_schedule: Sequence[Tuple[int, float]],
         req_q: mp.Queue,
         resp_q_dict: dict[int, mp.Queue],
         num_workers: int,
@@ -167,7 +190,7 @@ class GameZero(ABC):
                     game_cls,
                     games_per_worker,
                     num_simulations,
-                    threshold,
+                    temperature_schedule,
                     results_queue,
                     wid,
                 ),
@@ -257,6 +280,8 @@ class GameZero(ABC):
         assert self.model is not None
 
         games_played = 0
+        temperature_schedule = resolve_temperature_schedule(config)
+        print(f"Self-play temperature schedule: {temperature_schedule}")
         replay_buffer = ReplayMemory(max_size=config["replay_buffer_size"])
 
         ctx = mp.get_context("spawn")
@@ -290,7 +315,7 @@ class GameZero(ABC):
             episode_data = self.parallel_generate(
                 num_games_per_iteration,
                 config["num_simulations"],
-                config["stochastic_threshold"],
+                temperature_schedule,
                 request_queue,
                 response_queues_dict,
                 config["num_workers"],
