@@ -5,7 +5,7 @@ from src.game import Game
 
 class Hex(Game):
     def __init__(self) -> None:
-        super().__init__(11, 11, 122)
+        super().__init__(7, 7, 50)
         self.move_number = 1
         self.pie_rule_used = False
 
@@ -20,7 +20,7 @@ class Hex(Game):
 
     def make_move(self, action: int) -> None:
         if action == self.size1 * self.size2 and self.move_number == 2:
-            self.state = -self.state
+            self.state = -np.transpose(self.state)
             self.pie_rule_used = True
         else:
             row, col = divmod(action, self.size2)
