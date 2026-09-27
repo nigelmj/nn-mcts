@@ -6,6 +6,29 @@ import torch
 from src.node import Node
 
 
+DIRICHLET_EPSILON = 0.25
+
+# AlphaZero picked a Dirichlet alpha per game rather than one constant, and the values it
+# used track roughly 10 / (legal moves): Go 362 -> 0.03, shogi 92 -> 0.15, chess 35 -> 0.3.
+# The concentration is what matters. Below ~1 the draw is spiky, so a few moves take
+# nearly all the noise; at 1 it is uniform over the simplex. Applying Go's 0.03 to a game
+# with seven legal moves would dump the entire exploration budget on one of them.
+DIRICHLET_SCALE = 10.0
+
+
+def dirichlet_alpha_for(num_legal_moves: int) -> float:
+    """Noise concentration for a position with this many legal moves.
+
+    Derived per position rather than per game, so it follows the branching factor as it
+    actually is: Hex opens at 121 moves (alpha 0.08) and narrows to a handful by the end
+    (alpha near 1), while Connect Four sits at seven throughout (alpha ~1.4). One rule
+    covers every game in the repo without a per-game constant to keep in sync.
+    """
+    if num_legal_moves < 1:
+        raise ValueError("a position with no legal moves has nothing to explore")
+    return DIRICHLET_SCALE / num_legal_moves
+
+
 def apply_temperature(policy: np.ndarray, temperature: float) -> np.ndarray:
     """Sharpen or flatten a visit distribution for MOVE SELECTION only.
 
@@ -52,9 +75,17 @@ def temperature_for_move(
     The schedule is a step function: each entry sets the temperature from that ply until
     the next entry. [(0, 1.0), (15, 0.5), (30, 0.0)] samples freely for the first fifteen
     plies, then more sharply, then plays greedily from ply thirty.
+
+    An empty schedule raises rather than defaulting to greedy. Greedy at every ply means
+    self-play generates no exploration at all and training quietly collapses, which is
+    not something a typo in a config should be able to cause silently.
     """
     if not schedule:
-        return 0.0
+        raise ValueError(
+            "empty temperature schedule: self-play would play greedily at every ply "
+            "and explore nothing. Expected [(from_ply, temperature), ...], e.g. "
+            "[(0, 1.0), (15, 0.5), (30, 0.0)]."
+        )
     ordered = sorted(schedule, key=lambda entry: entry[0])
     temperature = ordered[0][1]
     for from_move, value in ordered:
@@ -84,6 +115,26 @@ class MCTS:
             self.wid = kwargs["wid"]
         else:
             self.model = kwargs["model"]
+
+    def _add_root_noise(self, game, priors: np.ndarray) -> np.ndarray:
+        """Mix Dirichlet noise into the root priors, over the LEGAL moves only.
+
+        Drawing the noise across the whole action space instead put roughly half its mass
+        on illegal moves, which populate_children then dropped: exploration was diluted by
+        a random amount each search and the priors no longer summed to 1. Restricted to
+        legal moves, a convex combination of two distributions over those moves is itself
+        a distribution over them, so the priors stay normalised.
+        """
+        legal = np.asarray(game.get_legal_moves(), dtype=int)
+        if legal.size < 2:
+            return priors  # nothing to explore between
+
+        noise = np.random.dirichlet(dirichlet_alpha_for(legal.size) * np.ones(legal.size))
+        noisy = priors.copy()
+        noisy[legal] = (
+            1 - DIRICHLET_EPSILON
+        ) * noisy[legal] + DIRICHLET_EPSILON * noise
+        return noisy
 
     def compute_improved_policy(self) -> np.ndarray:
         """The search's visit distribution over actions, normalised to sum to 1.
@@ -142,10 +193,8 @@ class MCTS:
             policy = policy[0]
 
         normalised_p = selected_node.game.mask_normalise_policy(policy)
-        if selected_node == self.root and self.training:
-            noise = np.random.dirichlet(0.03 * np.ones(selected_node.game.policy_size))
-            epsilon = 0.25
-            normalised_p = (1 - epsilon) * normalised_p + epsilon * noise
+        if selected_node is self.root and self.training:
+            normalised_p = self._add_root_noise(selected_node.game, normalised_p)
 
         selected_node.populate_children(normalised_p)
 

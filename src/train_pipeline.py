@@ -54,26 +54,6 @@ class ReplayMemory:
             )
 
 
-def resolve_temperature_schedule(config: Dict) -> List[Tuple[int, float]]:
-    """Read a temperature schedule from the config, accepting the older key.
-
-    A config with "temperature_schedule" is used directly. A config with only the older
-    "stochastic_threshold" is converted to [(0, 1.0), (threshold, 0.0)], which reproduces
-    that setting's move selection exactly -- sample below the threshold, play greedily
-    above it -- so configs that have not been migrated keep behaving as they did. What
-    they do gain is the fixed training target: the stored policy is now the full visit
-    distribution at every ply rather than a one-hot above the threshold.
-    """
-    schedule = config.get("temperature_schedule")
-    if schedule:
-        return [(int(move), float(temp)) for move, temp in schedule]
-
-    threshold = config.get("stochastic_threshold")
-    if threshold is None:
-        return [(0, 0.0)]
-    return [(0, 1.0), (int(threshold), 0.0)]
-
-
 class GameZero(ABC):
     def __init__(self, game: Game) -> None:
         self.model = None
@@ -280,7 +260,7 @@ class GameZero(ABC):
         assert self.model is not None
 
         games_played = 0
-        temperature_schedule = resolve_temperature_schedule(config)
+        temperature_schedule = config["temperature_schedule"]
         print(f"Self-play temperature schedule: {temperature_schedule}")
         replay_buffer = ReplayMemory(max_size=config["replay_buffer_size"])
 
@@ -352,7 +332,7 @@ class GameZero(ABC):
                 print(f"Saving iteration {iteration + 1} model...")
                 torch.save(
                     self.model.state_dict(),
-                    f"{config['path']}_checkpoint_{iteration + 1}.pt",
+                    f"{config['models_path']}_checkpoint_{iteration + 1}.pt",
                 )
             print(
                 f"Time taken for training step is {time.time() - step_time:.4f}",
@@ -365,3 +345,4 @@ class GameZero(ABC):
         response = response_queues_dict["main"].get()
         print(response)
         self.inference_worker.join()
+        replay_buffer.save(save_path=config['buffer_path'])

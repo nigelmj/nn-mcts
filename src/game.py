@@ -73,7 +73,8 @@ class Game(ABC):
 
     def mask_normalise_policy(self, policy: np.ndarray) -> np.ndarray:
         # Mask illegal moves
-        masked_policy = policy * self.legal_moves_mask()
+        mask = self.legal_moves_mask()
+        masked_policy = policy * mask
         sum_masked = np.sum(masked_policy)
 
         normalised_policy = masked_policy / sum_masked
