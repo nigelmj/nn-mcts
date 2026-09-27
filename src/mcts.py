@@ -107,7 +107,18 @@ class MCTS:
     ) -> None:
         self.root = root
         self.num_simulations = num_simulations
+
+        # Add noise to roots that have already been expanded in the sub tree
         self.training = training
+        if training and self.root.children != {}:
+            policy = np.zeros(self.root.game.policy_size)
+            for action, child in self.root.children.items():
+                policy[action] = child.P
+
+            normalised_p = self._add_root_noise(self.root.game, policy)
+            for action in self.root.children:
+                self.root.children[action].P = normalised_p[action]
+
         self.parallelised = parallelised
         if parallelised:
             self.request_queue = kwargs["request_queue"]
