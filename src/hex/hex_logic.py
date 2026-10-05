@@ -5,7 +5,7 @@ from src.game import Game
 
 class Hex(Game):
     def __init__(self) -> None:
-        super().__init__(7, 7, 50)
+        super().__init__(11, 11, 122)
         self.move_number = 1
         self.pie_rule_used = False
 
@@ -100,8 +100,7 @@ class Hex(Game):
         # player going the top-bottom direction even if second
         # player in reality traverses the left-right route
         encoded_state = super().encode_state()
-        encoded_state = np.rot90(encoded_state, k=1, axes=(1, 2))
-        encoded_state = np.flip(encoded_state, axis=2)
+        encoded_state = np.transpose(encoded_state, (0, 2, 1))
         return encoded_state
 
     def mask_normalise_policy(self, policy: np.ndarray) -> np.ndarray:
@@ -112,8 +111,7 @@ class Hex(Game):
         policy = np.delete(policy, -1)
         policy_2d = policy.reshape(self.size1, self.size2)
 
-        policy_2d = np.flip(policy_2d, axis=1)
-        policy_2d = np.rot90(policy_2d, k=3)
+        policy_2d = np.transpose(policy_2d)
         transfomed_policy = policy_2d.flatten()
         transformed_policy = np.append(transfomed_policy, swap_move)
 
