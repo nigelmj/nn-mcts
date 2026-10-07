@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import torch.multiprocessing as mp
 
+from src.checkpoint import load_model_state_dict
 from src.game import Game
 from src.mcts import MCTS, apply_temperature
 from src.neural_network import AlphaZeroNetwork
@@ -11,7 +12,8 @@ from src.node import Node
 class ModelAgent:
     def __init__(self, model_path: str, size1, size2, policy) -> None:
         # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        state_dict = torch.load(model_path, map_location="cpu")
+        # Accepts both full training checkpoints and older weights-only files.
+        state_dict = load_model_state_dict(model_path, map_location="cpu")
 
         self.model = AlphaZeroNetwork(size1, size2, policy, 2)
         self.model.load_state_dict(state_dict)

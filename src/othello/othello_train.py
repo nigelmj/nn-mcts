@@ -124,10 +124,10 @@ class OthelloZero(GameZero):
 
 training_config = {
     # Data Generation Stage
-    "iterations": 3000,
-    "games_per_iteration": 100,
+    "iterations": 500,
+    "games_per_iteration": 500,
     "temperature_schedule": [(0, 1.0), (20, 0.0)],
-    "num_simulations": 100,
+    "num_simulations": 500,
     # Network Training Stage
     "replay_buffer_size": 200_000,
     "num_steps": 8192,
@@ -136,10 +136,15 @@ training_config = {
     # "tournament_games": 40,
     # "update_threshold": 0.40,
     # Parallelism and Model Persistence
-    "checkpoint_frequency": 500,
+    "checkpoint_frequency": 50,
     "models_path": "src/othello/models/othello",
     "buffer_path": "src/othello/buffer.pkl",
     "num_workers": mp.cpu_count() - 1,
+    # Multi Run Training
+    "resume_from": None,
+    "resume_buffer": True,
+    "save_latest": True,
+    "lr_schedule": [(0, 1e-3)],
 }
 
 if __name__ == "__main__":

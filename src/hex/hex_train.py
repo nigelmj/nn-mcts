@@ -43,11 +43,11 @@ class HexZero(GameZero):
 
 training_config = {
     # Data Generation Stage
-    "iterations": 200,
-    "games_per_iteration": 200,
-    # "temperature_schedule": [(0, 1.0), (15, 0.5), (30, 0.0)],
-    "temperature_schedule": [(0, 1.0), (8, 0.5), (18, 0.0)],
-    "num_simulations": 200,
+    "iterations": 30,
+    "games_per_iteration": 1000,
+    "temperature_schedule": [(0, 1.0), (15, 0.5), (30, 0.0)],
+    # "temperature_schedule": [(0, 1.0), (8, 0.5), (18, 0.0)],
+    "num_simulations": 1000,
     # Network Training Stage
     "replay_buffer_size": 200_000,
     "num_steps": 8192,
@@ -56,10 +56,15 @@ training_config = {
     # "tournament_games": 40,
     # "update_threshold": 0.60,
     # Parallelism and Model Persistence
-    "checkpoint_frequency": 50,
-    "models_path": "src/hex/models_7x7/hex",
-    "buffer_path": "src/hex/buffer_7x7.pkl",
+    "checkpoint_frequency": 5,
+    "models_path": "src/hex/models_11x11/hex",
+    "buffer_path": "src/hex/models_11x11/buffer.pkl",
     "num_workers": mp.cpu_count() - 1,
+    # Multi Run Training
+    "resume_from": None,
+    "resume_buffer": True,
+    "save_latest": True,
+    "lr_schedule": [(0, 1e-3)],
 }
 
 if __name__ == "__main__":

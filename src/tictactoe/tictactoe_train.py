@@ -122,6 +122,11 @@ training_config = {
     "models_path": "src/tictactoe/models/tictactoe",
     "buffer_path": "src/tictactoe/buffer.pkl",
     "num_workers": mp.cpu_count() - 1,
+    # Multi Run Training
+    "resume_from": None,
+    "resume_buffer": True,
+    "save_latest": True,
+    "lr_schedule": [(0, 1e-3)],
 }
 
 if __name__ == "__main__":
