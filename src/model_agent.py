@@ -3,7 +3,7 @@ import torch
 import torch.multiprocessing as mp
 
 from src.game import Game
-from src.mcts import MCTS
+from src.mcts import MCTS, apply_temperature
 from src.neural_network import AlphaZeroNetwork
 from src.node import Node
 
@@ -34,10 +34,11 @@ class ModelAgent:
             self.root = Node(game.copy())
 
         # self.root = Node(game.copy())
-        mcts = MCTS(self.root, num_sim, False, False, False, model=self.model)
+        mcts = MCTS(self.root, num_sim, False, False, model=self.model)
         policy = mcts.compute_improved_policy()
 
-        action_index = int(np.argmax(policy))
+        # Greedy, with ties broken at random rather than by index order.
+        action_index = int(np.argmax(apply_temperature(policy, 0.0)))
         if action_index in self.root.children:
             self.root = self.root.children[action_index]
             self.root.parent = None

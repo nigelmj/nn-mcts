@@ -126,7 +126,7 @@ training_config = {
     # Data Generation Stage
     "iterations": 3000,
     "games_per_iteration": 100,
-    "stochastic_threshold": 20,
+    "temperature_schedule": [(0, 1.0), (20, 0.0)],
     "num_simulations": 100,
     # Network Training Stage
     "replay_buffer_size": 200_000,
@@ -137,7 +137,8 @@ training_config = {
     # "update_threshold": 0.40,
     # Parallelism and Model Persistence
     "checkpoint_frequency": 500,
-    "path": "src/othello/models/othello",
+    "models_path": "src/othello/models/othello",
+    "buffer_path": "src/othello/buffer.pkl",
     "num_workers": mp.cpu_count() - 1,
 }
 

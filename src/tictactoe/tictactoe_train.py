@@ -108,7 +108,7 @@ training_config = {
     # Data Generation Stage
     "iterations": 10,
     "games_per_iteration": 100,
-    "stochastic_threshold": 5,
+    "temperature_schedule": [(0, 1.0), (5, 0.0)],
     "num_simulations": 50,
     # Network Training Stage
     "replay_buffer_size": 5000,
@@ -119,7 +119,8 @@ training_config = {
     # "update_threshold": 0.50,
     # Parallelism and Model Persistence
     "checkpoint_frequency": 5,
-    "path": "src/tictactoe/models/TicTacToe",
+    "models_path": "src/tictactoe/models/tictactoe",
+    "buffer_path": "src/tictactoe/buffer.pkl",
     "num_workers": mp.cpu_count() - 1,
 }
 

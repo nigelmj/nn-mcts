@@ -1,6 +1,7 @@
 venv
 logs
 **/*.pt
+**/*.pkl
 **/__pycache__
 **/.DS_Store
 **/*.qsub

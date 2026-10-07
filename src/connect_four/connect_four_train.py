@@ -38,7 +38,7 @@ training_config = {
     # Data Generation Stage
     "iterations": 3000,
     "games_per_iteration": 100,
-    "stochastic_threshold": 10,
+    "temperature_schedule": [(0, 1.0), (10, 0.0)],
     "num_simulations": 100,
     # Network Training Stage
     "replay_buffer_size": 100_000,
@@ -49,7 +49,8 @@ training_config = {
     # "update_threshold": 0.60,
     # Parallelism and Model Persistence
     "checkpoint_frequency": 500,
-    "path": "src/connect_four/models/connect_four",
+    "models_path": "src/connect_four/models/connect_four",
+    "buffer_path": "src/connect_four/buffer.pkl",
     "num_workers": mp.cpu_count() - 1,
 }
 
